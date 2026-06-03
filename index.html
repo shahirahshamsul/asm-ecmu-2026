@@ -923,7 +923,7 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
 <div id="toast"></div>
 
 <script>
-let SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRDhM3yh1WgP4rOLksGnBKMw6TYLwIcT6QnfOT94LX_r4KyiBQFB5YnhQZrEfG5XiEjA/exec';
+let SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgqbpwH6L72cpehVqx342h8D4eRldO4RuAPAs_FmLALSyKhONQIdpqbofF3HZzeivE2g/exec';
 let attendees = [];
 let recentScans = [];
 let currentQRData = null;
@@ -1016,7 +1016,7 @@ async function loadFromSheet() {
         checkedIn_main2: r.checkedIn_main2 === 'true' || r.checkedIn_main2 === true,
         checkInTime_main2: r.checkInTime_main2 || null,
         createdAt: r.createdAt || '',
-        emailSent: r.emailSent === 'true' || r.emailSent === true,
+        emailSent: r.emailSent === 'true' || r.emailSent === true || r.emailSent === 'TRUE' || r.emailSent === 'True',
         emailSentTime: r.emailSentTime || null
       }));
       // Sync emailSentSet from sheet data
