@@ -1792,8 +1792,16 @@ async function sendEmails() {
       const body = buildEmailBody(attendee, fromName);
       const res = await fetch(emailScriptUrl, { method: 'POST', body: JSON.stringify({ email: attendee.email, subject, body, qrData: qrBase64, name: attendee.name, fromName, replyTo }) });
       const result = await res.json();
-      if (result.success) { sent++; if (!emailSentSet.includes(id)) emailSentSet.push(id); localStorage.setItem('emailSentSet', JSON.stringify(emailSentSet)); }
-      else { failed++; console.error('Failed:', attendee.name, result.error); }
+      if (result.success) {
+        sent++;
+        // Mark as sent in Google Sheet
+        try { await apiPost({ action: 'markEmailSent', id: id }); } catch(e) { console.log('Sheet mark failed:', e); }
+        // Update local state
+        if (!emailSentSet.includes(id)) emailSentSet.push(id);
+        localStorage.setItem('emailSentSet', JSON.stringify(emailSentSet));
+        const localA = attendees.find(a => a.id === id);
+        if (localA) localA.emailSent = true;
+      } else { failed++; console.error('Failed:', attendee.name, result.error); }
     } catch(e) { failed++; console.error('Error:', attendee.name, e); }
     await new Promise(r => setTimeout(r, 600));
   }
