@@ -1045,8 +1045,8 @@ async function loadFromSheet() {
         createdAt: r.createdAt || '',
         emailSent: r.emailSent === 'true' || r.emailSent === true || r.emailSent === 'TRUE' || r.emailSent === 'True',
         emailSentTime: r.emailSentTime || null,
-        sponsored: r.sponsored || 'No',
-        sponsoredBy: r.sponsoredBy || ''
+        sponsored: (r.sponsored === 'Yes' || r.sponsored === 'yes' || r.sponsored === 'TRUE' || r.sponsored === true) ? 'Yes' : 'No',
+        sponsoredBy: r.sponsoredBy || r.sponsoredby || r.SponsoredBy || ''
       }));
       // Sync emailSentSet from sheet data
       emailSentSet = attendees.filter(a => a.emailSent).map(a => a.id);
