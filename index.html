@@ -643,6 +643,11 @@ function json(data) {
             <option value="present">Checked In</option>
             <option value="absent">Not Arrived</option>
           </select>
+          <select id="filter-sponsored" onchange="renderAttendeeChips()" style="padding:0.5rem 0.6rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;background:var(--white);border:1px solid var(--border);border-radius:3px;outline:none;color:var(--ink);">
+            <option value="all">All Candidates</option>
+            <option value="yes">Sponsored</option>
+            <option value="no">Not Sponsored</option>
+          </select>
           <button class="btn btn-blue btn-sm" onclick="loadFromSheet()">↻ Refresh</button>
           <button class="btn btn-primary btn-sm" onclick="openAllQR()">View All QR</button>
         </div>
@@ -776,6 +781,11 @@ function json(data) {
           <option value="Speaker/VIP">Speaker / VIP</option>
           <option value="Facilitator">Facilitator</option>
         </select>
+        <select id="exp-sponsored" onchange="renderExportTable()" style="padding:0.4rem 0.6rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;background:var(--paper);border:1px solid var(--border);border-radius:3px;outline:none;color:var(--ink);">
+          <option value="all">All Candidates</option>
+          <option value="yes">Sponsored</option>
+          <option value="no">Not Sponsored</option>
+        </select>
         <button class="btn btn-blue btn-sm" onclick="loadFromSheet();renderExportTable();">↻ Refresh</button>
         <span style="font-size:0.72rem;color:var(--muted);" id="exp-count">0 results</span>
       </div>
@@ -890,6 +900,11 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
           <option value="unsent">Not Yet Emailed</option>
           <option value="sent">Already Emailed</option>
         </select>
+        <select id="email-sponsored-filter" onchange="renderEmailList()" style="padding:0.5rem 0.75rem;font-family:'Montserrat',sans-serif;font-size:0.78rem;background:var(--paper);border:1px solid var(--border);border-radius:3px;outline:none;">
+          <option value="all">All Candidates</option>
+          <option value="yes">Sponsored</option>
+          <option value="no">Not Sponsored</option>
+        </select>
         <button class="btn btn-ghost btn-sm" onclick="selectAllEmails()">Select All</button>
         <button class="btn btn-ghost btn-sm" onclick="deselectAllEmails()">Deselect All</button>
         <span id="email-selected-count" style="font-size:0.72rem;color:var(--muted);">0 selected</span>
@@ -935,7 +950,7 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
 <div id="toast"></div>
 
 <script>
-let SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzs4a9_5ZggO1Wa77yaHlQQ0CsiMuobQFA6o4GSr1gGC2smyjw_0gx1gKub42-Zsz7mAg/exec';
+let SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqiCvBdGAwlHSUjkC0FeE0aqPWCwSbG9lGVRw5vXFhWc_pmLtKFTg4xDDMzrRZnvyNXg/exec';
 let attendees = [];
 let recentScans = [];
 let currentQRData = null;
@@ -1182,12 +1197,15 @@ function renderAttendeeChips() {
   const search = (document.getElementById('search-attendees')?.value || '').toLowerCase();
   const sessionF = document.getElementById('filter-session')?.value || 'all';
   const statusF = document.getElementById('filter-status')?.value || 'all';
+  const sponsoredF = document.getElementById('filter-sponsored')?.value || 'all';
   const filtered = attendees.filter(a => {
     if (search && !a.name.toLowerCase().includes(search) && !a.email.toLowerCase().includes(search) && !(a.org||'').toLowerCase().includes(search)) return false;
     if (sessionF !== 'all' && a.session !== sessionF) return false;
     const anyCheckedIn = a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2;
     if (statusF === 'present' && !anyCheckedIn) return false;
     if (statusF === 'absent' && anyCheckedIn) return false;
+    if (sponsoredF === 'yes' && a.sponsored !== 'Yes') return false;
+    if (sponsoredF === 'no' && a.sponsored === 'Yes') return false;
     return true;
   });
   const grid = document.getElementById('attendee-chips');
@@ -1600,12 +1618,15 @@ function getFilteredAttendees() {
   const q = (document.getElementById('exp-search')?.value||'').toLowerCase();
   const status = document.getElementById('exp-filter')?.value || 'all';
   const session = document.getElementById('exp-session')?.value || 'all';
+  const sponsoredF = document.getElementById('exp-sponsored')?.value || 'all';
   return attendees.filter(a => {
     if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q)) return false;
     const anyCheckedIn = a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2;
     if (status === 'present' && !anyCheckedIn) return false;
     if (status === 'absent' && anyCheckedIn) return false;
     if (session !== 'all' && a.session !== session) return false;
+    if (sponsoredF === 'yes' && a.sponsored !== 'Yes') return false;
+    if (sponsoredF === 'no' && a.sponsored === 'Yes') return false;
     return true;
   });
 }
@@ -1751,6 +1772,7 @@ function renderEmailList() {
   const q = (document.getElementById('email-search')?.value || '').toLowerCase();
   const sessionF = document.getElementById('email-session-filter')?.value || 'all';
   const sentF = document.getElementById('email-sent-filter')?.value || 'all';
+  const emailSponsoredF = document.getElementById('email-sponsored-filter')?.value || 'all';
   const filtered = attendees.filter(a => {
     if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q)) return false;
     // Speaker tab always filters to Speaker/VIP only
@@ -1761,6 +1783,8 @@ function renderEmailList() {
     }
     if (sentF === 'sent' && !emailSentSet.includes(a.id)) return false;
     if (sentF === 'unsent' && emailSentSet.includes(a.id)) return false;
+    if (emailSponsoredF === 'yes' && a.sponsored !== 'Yes') return false;
+    if (emailSponsoredF === 'no' && a.sponsored === 'Yes') return false;
     return true;
   });
   if (filtered.length === 0) { list.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:1rem;">No attendees match your filters.</div>'; updateEmailCount(); return; }
