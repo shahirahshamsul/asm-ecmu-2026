@@ -570,7 +570,7 @@ function json(data) {
 
         <div class="bulk-area">
           <h3>Bulk CSV Import</h3>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.75rem;">Columns must be in order: <code style="background:var(--cream);padding:0.1rem 0.4rem;border-radius:2px;">Name, Email, Organization, Session</code></p>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.75rem;">Columns must be in order: <code style="background:var(--cream);padding:0.1rem 0.4rem;border-radius:2px;">Name, Email, Organization, Session, Sponsored, SponsoredBy</code> (last 2 optional)</p>
 
           <!-- File upload -->
           <div style="border:2px dashed var(--border);border-radius:4px;padding:1.25rem;text-align:center;cursor:pointer;background:var(--cream);margin-bottom:0.75rem;transition:border-color 0.2s;"
@@ -592,7 +592,7 @@ function json(data) {
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
 
-          <textarea id="csv-input" rows="3" placeholder="Maria Santos, maria@acme.com, Acme Corp, Main Congress&#10;John Doe, john@co.com, Startup Co, Pre Congress"></textarea>
+          <textarea id="csv-input" rows="3" placeholder="Maria Santos, maria@acme.com, Acme Corp, Main Congress, Yes, Pfizer&#10;John Doe, john@co.com, Startup Co, Pre Congress"></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="importCSV()">Import</button>
             <button class="btn btn-ghost btn-sm" onclick="clearCSVInput()">Clear</button>
@@ -1274,6 +1274,8 @@ async function importCSV() {
     if (parts.length < 2) continue;
     const [name, email, org=''] = parts;
     let session = parts[3] || 'Main Congress';
+    const sponsored = parts[4] || 'No';
+    const sponsoredBy = parts[5] || '';
     // Normalize session casing
     const sessionMap = {
       'pre congress': 'Pre Congress',
@@ -1286,7 +1288,7 @@ async function importCSV() {
     if (!name || !email) continue;
     if (attendees.find(a => a.email.toLowerCase() === email.toLowerCase())) { skipped++; continue; }
     const id = uid();
-    const attendee = { id, name, email, org, session, checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
+    const attendee = { id, name, email, org, session, sponsored: sponsored.trim() || 'No', sponsoredBy: sponsoredBy.trim() || '', checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
     try {
       await apiPost({ action: 'addAttendee', attendee });
       attendees.push(attendee);
