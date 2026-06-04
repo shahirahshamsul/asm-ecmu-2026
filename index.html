@@ -1727,16 +1727,22 @@ function buildEmailBody(attendee, fromName) {
     return '<p style="font-size:0.88rem;line-height:1.7;margin:0 0 0.5rem;">' + line + '</p>';
   }).join('');
 
+  const sponsoredRow = (attendee.sponsored === 'Yes' && attendee.sponsoredBy)
+    ? '<div style="background:#f9f3ff;border:1px solid #d9a0d9;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;">'
+      + '<p style="font-size:0.78rem;color:#9b2d8e;margin:0;"><strong>Sponsored by: ' + attendee.sponsoredBy + '</strong></p>'
+      + '</div>'
+    : '';
+
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>'
     + '<body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:2rem;color:#1a1a1a;background:#fff;">'
     + '<div style="border-top:4px solid #9b2d8e;padding-top:1.5rem;margin-bottom:2rem;">'
     + '<h2 style="font-size:1.4rem;color:#9b2d8e;margin:0 0 0.25rem;">Annual Scientific Meeting</h2>'
     + '<h2 style="font-size:1.4rem;color:#6b1f7a;margin:0;">&amp; East Coast Medical Update 2026</h2>'
     + '<p style="font-size:0.8rem;color:#888;margin:0.5rem 0 0;font-style:italic;">From Innovations to Updates</p></div>'
+    + sponsoredRow
     + paragraphs
     + '<div style="border-top:1px solid #e0d0e8;padding-top:1rem;margin-top:1.5rem;">'
     + '<p style="font-size:0.88rem;font-weight:600;margin:0;color:#6b1f7a;">' + fromName + '</p>'
-    + '<p style="font-size:0.78rem;color:#888;margin:0.25rem 0 0;">Annual Scientific Meeting &amp; East Coast Medical Update 2026</p>'
     + '</div></body></html>';
 }
 
