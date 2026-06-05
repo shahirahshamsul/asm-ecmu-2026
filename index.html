@@ -654,6 +654,7 @@ function json(data) {
       </div>
       <div class="attendee-list-grid" id="attendee-chips"></div>
       <div id="no-attendees" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.8rem;">No attendees yet.</div>
+      <div id="filter-summary" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:var(--white);border:1px solid var(--border);border-radius:4px;font-size:0.78rem;color:var(--muted);font-family:'Montserrat',sans-serif;"></div>
     </div>
   </div>
 
@@ -1046,7 +1047,8 @@ async function loadFromSheet() {
         emailSent: r.emailSent === 'true' || r.emailSent === true || r.emailSent === 'TRUE' || r.emailSent === 'True',
         emailSentTime: r.emailSentTime || null,
         sponsored: (r.sponsored === 'Yes' || r.sponsored === 'yes' || r.sponsored === 'TRUE' || r.sponsored === true) ? 'Yes' : 'No',
-        sponsoredBy: r.sponsoredBy || r.sponsoredby || r.SponsoredBy || ''
+        sponsoredBy: r.sponsoredBy || r.sponsoredby || r.SponsoredBy || '',
+        notes: r.notes || r.Notes || ''
       }));
       // Sync emailSentSet from sheet data
       emailSentSet = attendees.filter(a => a.emailSent).map(a => a.id);
@@ -1211,12 +1213,41 @@ function renderAttendeeChips() {
   const grid = document.getElementById('attendee-chips');
   const noDiv = document.getElementById('no-attendees');
   document.getElementById('attendee-count').textContent = `${attendees.length} registered`;
+
+  // Build filter summary
+  const summaryDiv = document.getElementById('filter-summary');
+  const sessionF2 = document.getElementById('filter-session')?.value || 'all';
+  const statusF2 = document.getElementById('filter-status')?.value || 'all';
+  const sponsoredF2 = document.getElementById('filter-sponsored')?.value || 'all';
+  const isFiltered = sessionF2 !== 'all' || statusF2 !== 'all' || sponsoredF2 !== 'all';
+
+  if (summaryDiv) {
+    if (isFiltered && filtered.length > 0) {
+      const checkedIn = filtered.filter(a => a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2).length;
+      const sponsored = filtered.filter(a => a.sponsored === 'Yes').length;
+      let parts = [`Showing <strong>${filtered.length}</strong> of ${attendees.length} attendees`];
+      if (sessionF2 !== 'all') parts.push(`Session: <strong>${sessionF2}</strong>`);
+      if (statusF2 !== 'all') parts.push(`Status: <strong>${statusF2 === 'present' ? 'Checked In' : 'Not Arrived'}</strong>`);
+      if (sponsoredF2 !== 'all') parts.push(`Sponsored: <strong>${sponsoredF2 === 'yes' ? 'Yes' : 'No'}</strong>`);
+      parts.push(`Checked in: <strong>${checkedIn}</strong>`);
+      if (sponsoredF2 !== 'no') parts.push(`Sponsored candidates: <strong>${sponsored}</strong>`);
+      summaryDiv.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+      summaryDiv.style.display = 'block';
+    } else {
+      summaryDiv.style.display = 'none';
+    }
+  }
+
   if (filtered.length === 0) { grid.innerHTML = ''; noDiv.style.display = 'block'; return; }
   noDiv.style.display = 'none';
   grid.innerHTML = filtered.map(a => `
     <div class="attendee-chip ${a.checkedIn?'checked-in':''}" onclick="openDetail('${a.id}')">
       <div class="chip-avatar">${a.name[0].toUpperCase()}</div>
-      <div><div class="chip-name">${a.name}</div><div class="chip-meta">${a.session}${a.org?' · '+a.org:''}</div></div>
+      <div style="flex:1;min-width:0;">
+        <div class="chip-name">${a.name}</div>
+        <div class="chip-meta">${a.session}${a.org?' · '+a.org:''}</div>
+        ${a.notes ? '<div style=\"margin-top:3px;\"><span style=\"font-size:0.6rem;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-weight:600;\">' + a.notes + '</span></div>' : ''}
+      </div>
       <div class="chip-status ${(a.checkedIn_pre||a.checkedIn_main1||a.checkedIn_main2)?'present':'absent'}">${buildCheckinBadge(a)}</div>
     </div>`).join('');
 }
