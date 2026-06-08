@@ -1409,6 +1409,7 @@ async function startScanner() {
     zxingReader.decodeFromVideoElement(video, (result, err) => {
       if (result) {
         const text = result.getText();
+        console.log('QR scanned text:', text);
         try {
           const data = JSON.parse(text);
           if (data.id) processCheckIn(data.id);
