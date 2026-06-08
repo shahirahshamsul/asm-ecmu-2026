@@ -441,6 +441,22 @@ function doPost(e) {
     return json({ error: "Not found" });
   }
 
+  if (action === "undoCheckIn") {
+    const day = body.day;
+    const rows = sheet.getDataRange().getValues();
+    const dayColMap = { pre: [5,6], main1: [7,8], main2: [9,10], speaker: [7,8] };
+    const cols = dayColMap[day];
+    if (!cols) return json({ error: "Invalid day" });
+    for (let i = 1; i &lt; rows.length; i++) {
+      if (rows[i][0] === body.id) {
+        sheet.getRange(i+1, cols[0]+1).setValue("false");
+        sheet.getRange(i+1, cols[1]+1).setValue("");
+        return json({ success: true, name: rows[i][1] });
+      }
+    }
+    return json({ error: "Not found" });
+  }
+
   return json({ error: "Unknown action" });
 }
 
@@ -907,11 +923,12 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
     <h2 id="md-name">—</h2>
     <p id="md-details">—</p>
     <div id="md-qr" style="display:flex;justify-content:center;margin-bottom:1rem;"></div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-detail').classList.remove('open')">Close</button>
       <button class="btn btn-green btn-sm" id="md-checkin-btn" onclick="modalCheckIn()">Check-in Now</button>
       <button class="btn btn-primary btn-sm" onclick="modalDownloadQR()">Download QR</button>
     </div>
+    <div id="md-undo-btns" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
   </div>
 </div>
 
@@ -1299,6 +1316,31 @@ function openDetail(id) {
   const qrDiv = document.getElementById('md-qr');
   qrDiv.innerHTML = '';
   new QRCode(qrDiv, { text: a.id, width: 160, height: 160, colorDark: '#0f0e0c', correctLevel: QRCode.CorrectLevel.H });
+  // Show undo buttons for any days already checked in
+  const undoDiv = document.getElementById('md-undo-btns');
+  undoDiv.innerHTML = '';
+  const dayMap = [
+    { key: 'pre', label: 'Pre Congress', col: 'checkedIn_pre' },
+    { key: 'main1', label: 'Main Congress D1', col: 'checkedIn_main1' },
+    { key: 'main2', label: 'Main Congress D2', col: 'checkedIn_main2' },
+  ];
+  dayMap.forEach(d => {
+    if (a[d.col]) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm';
+      btn.style.cssText = 'color:var(--accent);border-color:var(--accent);font-size:0.62rem;';
+      btn.textContent = '↩ Undo ' + d.label;
+      btn.onclick = () => {
+        document.getElementById('modal-detail').classList.remove('open');
+        undoCheckIn(a.id, d.key);
+      };
+      undoDiv.appendChild(btn);
+    }
+  });
+  if (undoDiv.innerHTML === '') {
+    undoDiv.innerHTML = '<span style="font-size:0.68rem;color:var(--muted);">No check-ins to undo yet.</span>';
+  }
+
   document.getElementById('modal-detail').classList.add('open');
 }
 
@@ -1369,12 +1411,10 @@ async function startScanner() {
     zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
       if (result) {
         let text = result.getText().trim();
-        console.log('QR scanned:', text);
-        try {
-          const data = JSON.parse(text);
-          if (data.id) { processCheckIn(data.id); return; }
-        } catch(e) {}
-        if (text.startsWith('CP-')) processCheckIn(text);
+        console.log('QR scanned raw:', text);
+        const id = extractId(text);
+        if (id) processCheckIn(id);
+        else console.warn('QR scanned but no matching attendee ID found:', text);
       }
     });
 
@@ -1421,12 +1461,9 @@ function scanFromFile(event) {
     if (code && code.data) {
       let text = code.data.replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
       console.log('File QR scanned:', text);
-      try {
-        const data = JSON.parse(text);
-        if (data.id) processCheckIn(data.id);
-      } catch(e) {
-        if (text && text.startsWith('CP-')) processCheckIn(text);
-      }
+      const id = extractId(text);
+      if (id) processCheckIn(id);
+      else toast('QR scanned but attendee not found.', 'warn');
     } else {
       toast('Could not read QR code. Try a clearer photo.', 'err');
     }
@@ -1434,6 +1471,57 @@ function scanFromFile(event) {
     event.target.value = '';
   };
   img.src = url;
+}
+
+async function undoCheckIn(id, day) {
+  const a = attendees.find(x => x.id === id);
+  if (!a) { toast('Attendee not found.', 'err'); return; }
+  const dayLabel = { pre: 'Pre Congress', main1: 'Main Congress Day 1', main2: 'Main Congress Day 2', speaker: 'Speaker / VIP' };
+  if (!confirm('Undo check-in for ' + a.name + ' (' + (dayLabel[day]||day) + ')? This will clear their check-in record.')) return;
+  try {
+    const result = await apiPost({ action: 'undoCheckIn', id, day });
+    if (result.success) {
+      const dayKey = 'checkedIn_' + day;
+      const timeKey = 'checkInTime_' + day;
+      a[dayKey] = false;
+      a[timeKey] = null;
+      updateHeaderStats();
+      renderAttendeeChips();
+      renderExportTable();
+      toast('✓ Check-in undone for ' + a.name);
+    } else {
+      toast('Failed to undo: ' + (result.error||'unknown error'), 'err');
+    }
+  } catch(e) { toast('Network error.', 'err'); }
+}
+
+// Handles every QR format: plain CP-ID, JSON {id:...}, JSON {email:...}, plain email
+function extractId(text) {
+  if (!text) return null;
+  text = text.trim();
+
+  // Format 1: plain CP- ID
+  if (text.startsWith('CP-')) return text;
+
+  // Format 2: JSON object
+  try {
+    const data = JSON.parse(text);
+    // Has explicit id field
+    if (data.id && data.id.startsWith('CP-')) return data.id;
+    // Has email — look up attendee by email
+    if (data.email) {
+      const a = attendees.find(x => x.email.toLowerCase() === data.email.toLowerCase());
+      if (a) return a.id;
+    }
+  } catch(e) {}
+
+  // Format 3: plain email address
+  if (text.includes('@')) {
+    const a = attendees.find(x => x.email.toLowerCase() === text.toLowerCase());
+    if (a) return a.id;
+  }
+
+  return null;
 }
 
 let lastScannedId = null, lastScannedTime = 0;
