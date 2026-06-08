@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.json">
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -1389,18 +1389,28 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
+    zxingReader = new ZXing.BrowserQRCodeReader();
     const video = document.getElementById('scanner-video');
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
     video.srcObject = stream;
     scannerStream = stream;
     await video.play();
-    scanInterval = setInterval(scanFrame, 200);
+
+    zxingReader.decodeFromVideoElement(video, (result, err) => {
+      if (result) {
+        const text = result.getText();
+        console.log('QR scanned:', text);
+        try {
+          const data = JSON.parse(text);
+          if (data.id) processCheckIn(data.id);
+        } catch(e) {
+          if (text && text.trim().startsWith('CP-')) processCheckIn(text.trim());
+        }
+      }
+    });
   } catch(e) {
     console.error('Scanner error:', e);
     toast('Camera access denied. Use manual check-in below.', 'err');
@@ -1413,6 +1423,7 @@ async function startScanner() {
 }
 
 function stopScanner() {
+  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
   clearInterval(scanInterval);
   document.getElementById('scanner-video').style.display = 'none';
@@ -1422,27 +1433,7 @@ function stopScanner() {
   document.getElementById('stop-scan-btn').style.display = 'none';
 }
 
-function scanFrame() {
-  const video = document.getElementById('scanner-video');
-  const canvas = document.getElementById('scanner-canvas');
-  if (!video.readyState || video.readyState < 2) return;
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(video, 0, 0);
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
-  if (code) {
-    const text = code.data;
-    console.log('QR scanned:', text);
-    try {
-      const data = JSON.parse(text);
-      if (data.id) processCheckIn(data.id);
-    } catch(e) {
-      if (text && text.startsWith('CP-')) processCheckIn(text.trim());
-    }
-  }
-}
+function scanFrame() {}
 
 let lastScannedId = null, lastScannedTime = 0;
 function processCheckIn(id) {
