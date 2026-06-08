@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.json">
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -1389,23 +1389,35 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    zxingReader = new ZXing.BrowserQRCodeReader(hints);
+    zxingReader = new ZXing.BrowserQRCodeReader();
 
     const video = document.getElementById('scanner-video');
-    await zxingReader.decodeFromConstraints(
-      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-      video,
-      (result, err) => {
-        if (result) {
-          try {
-            const data = JSON.parse(result.getText());
-            if (data.id) processCheckIn(data.id);
-          } catch(e) {}
+
+    // Get camera stream manually for better iPhone compatibility
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+    video.srcObject = stream;
+    scannerStream = stream;
+    await video.play();
+
+    // Use decodeFromVideoElement for better iOS support
+    zxingReader.decodeFromVideoElement(video, (result, err) => {
+      if (result) {
+        const text = result.getText();
+        try {
+          const data = JSON.parse(text);
+          if (data.id) processCheckIn(data.id);
+        } catch(e) {
+          // Maybe it's just a plain ID string
+          if (text && text.startsWith('CP-')) processCheckIn(text);
         }
       }
-    );
+    });
   } catch(e) {
     console.error('Scanner error:', e);
     toast('Camera access denied. Use manual check-in below.', 'err');
@@ -1825,7 +1837,7 @@ async function sendEmails() {
     if (!attendee) continue;
     status.textContent = 'Sending ' + (sent+failed+1) + ' of ' + checked.length + ' - ' + attendee.name + '...';
     try {
-      const qrCanvas = await generateQRCanvas(attendee.id);
+      const qrCanvas = await generateQRCanvas(JSON.stringify({ id: attendee.id, name: attendee.name, email: attendee.email }));
       const qrBase64 = qrCanvas.toDataURL('image/png').split(',')[1];
       const body = buildEmailBody(attendee, fromName);
       const res = await fetch(emailScriptUrl, { method: 'POST', body: JSON.stringify({ email: attendee.email, subject, body, qrData: qrBase64, name: attendee.name, fromName, replyTo }) });
