@@ -1432,10 +1432,19 @@ function scanFromFile(event) {
 }
 
 let lastScannedId = null, lastScannedTime = 0;
+let isCheckingIn = false;
 function processCheckIn(id) {
-  if (id === lastScannedId && Date.now() - lastScannedTime < 3000) return;
-  lastScannedId = id; lastScannedTime = Date.now();
-  checkInById(id);
+  // Block same ID for 5s to avoid double-scan of same QR
+  if (id === lastScannedId && Date.now() - lastScannedTime < 5000) return;
+  // Block if a check-in is already in progress
+  if (isCheckingIn) return;
+  lastScannedId = id;
+  lastScannedTime = Date.now();
+  isCheckingIn = true;
+  checkInById(id).finally(() => {
+    // Allow next scan after 2s
+    setTimeout(() => { isCheckingIn = false; }, 2000);
+  });
 }
 
 let currentDay = 'pre';
@@ -1499,6 +1508,7 @@ async function checkInById(id) {
         <div class="result-meta">Already checked in for ${getDayLabel(currentDay)}</div>`;
       toast(`${localAttendee.name} already checked in for ${getDayLabel(currentDay)}.`, 'warn');
     } else if (result.success) {
+      lastScannedId = null; // reset so same person can scan again if needed
       const dayKey = 'checkedIn_' + currentDay;
       localAttendee[dayKey] = true;
       localAttendee['checkInTime_' + currentDay] = new Date().toISOString();
@@ -1515,6 +1525,14 @@ async function checkInById(id) {
       setTimeout(() => loadFromSheet(), 1500);
       playBeep();
       toast(`✓ ${localAttendee.name} checked in for ${getDayLabel(currentDay)}!`);
+      // Reset card to ready state after 3s so next scan is clear
+      setTimeout(() => {
+        const c = document.getElementById('result-card');
+        if (c && c.classList.contains('success')) {
+          c.className = 'result-card';
+          c.innerHTML = '<div class="result-icon">📋</div><div class="result-name" style="font-size:1rem;color:var(--muted);">Ready — scan next QR…</div>';
+        }
+      }, 3000);
     } else {
       card.className = 'result-card error';
       card.innerHTML = `<div class="result-icon">⛔</div><div class="result-name">Error</div><div class="result-meta">Could not sync check-in</div>`;
