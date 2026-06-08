@@ -1342,7 +1342,7 @@ function openAllQR() {
   });
 }
 
-// ════ FIXED SCANNER ════
+// ════ SCANNER ════
 async function startScanner() {
   try {
     document.getElementById('scanner-idle').style.display = 'none';
@@ -1351,55 +1351,38 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
+    zxingReader = new ZXing.BrowserQRCodeReader();
+
+    // Get list of video devices and prefer back camera
+    const devices = await ZXing.BrowserQRCodeReader.listVideoInputDevices();
+    let deviceId = undefined;
+    if (devices && devices.length > 0) {
+      const back = devices.find(d => /back|rear|environment/i.test(d.label));
+      deviceId = back ? back.deviceId : devices[devices.length - 1].deviceId;
+    }
+
     const video = document.getElementById('scanner-video');
-    const canvas = document.getElementById('scanner-canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    video.srcObject = stream;
-    scannerStream = stream;
-    await video.play();
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    function scanLoop() {
-      if (!scannerStream) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    await zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+      if (result) {
+        let text = result.getText().replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
+        console.log('QR scanned:', text);
         try {
-          const luminanceSource = new ZXing.RGBLuminanceSource(
-            imageData.data, canvas.width, canvas.height
-          );
-          const binaryBitmap = new ZXing.BinaryBitmap(
-            new ZXing.HybridBinarizer(luminanceSource)
-          );
-          const result = new ZXing.QRCodeReader().decode(binaryBitmap);
-          if (result) {
-            let text = result.getText().replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
-            try {
-              const data = JSON.parse(text);
-              if (data.id) processCheckIn(data.id);
-            } catch(e) {
-              if (text.startsWith('CP-')) processCheckIn(text);
-            }
-          }
+          const data = JSON.parse(text);
+          if (data.id) processCheckIn(data.id);
         } catch(e) {
-          // No QR found in this frame — keep looping
+          if (text.startsWith('CP-')) processCheckIn(text);
         }
       }
-      scanInterval = requestAnimationFrame(scanLoop);
-    }
-    scanInterval = requestAnimationFrame(scanLoop);
+      // err here is normal — just means no QR in current frame, ignore
+    });
+
+    // Keep reference to stream for stopScanner
+    if (video.srcObject) scannerStream = video.srcObject;
 
   } catch(e) {
     console.error('Scanner error:', e);
-    toast('Camera access denied. Use manual check-in below.', 'err');
+    toast('Camera access denied. Use manual check-in or iPhone Scan below.', 'err');
     document.getElementById('scanner-idle').style.display = 'flex';
     document.getElementById('scanner-video').style.display = 'none';
     document.getElementById('scan-overlay').style.display = 'none';
