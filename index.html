@@ -329,7 +329,6 @@
     margin-bottom: 1.5rem;
   }
 
-  /* ── DAY MODE BUTTONS ── */
   .day-btn {
     font-family: 'Montserrat', sans-serif; font-size: 0.72rem;
     letter-spacing: 0.08em; text-transform: uppercase;
@@ -449,7 +448,6 @@ function isAllowed(session, day) {
   if (day === "main1") return session === "Main Congress" || session === "Both Congress";
   if (day === "main2") return session === "Main Congress" || session === "Both Congress";
   if (day === "speaker") return session === "Speaker/VIP" || session === "Speaker / VIP" || session === "Facilitator";
-  // Speaker/VIP and Facilitator can scan on any day, once only
   if (session === "Speaker/VIP" || session === "Speaker / VIP" || session === "Facilitator") return true;
   return false;
 }
@@ -559,8 +557,6 @@ function json(data) {
         <div class="bulk-area">
           <h3>Bulk CSV Import</h3>
           <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.75rem;">Columns must be in order: <code style="background:var(--cream);padding:0.1rem 0.4rem;border-radius:2px;">Name, Email, Organization, Session</code></p>
-
-          <!-- File upload -->
           <div style="border:2px dashed var(--border);border-radius:4px;padding:1.25rem;text-align:center;cursor:pointer;background:var(--cream);margin-bottom:0.75rem;transition:border-color 0.2s;"
                onclick="document.getElementById('csv-file-input').click()"
                ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
@@ -572,14 +568,11 @@ function json(data) {
             <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="handleCSVFileSelect(event)">
           </div>
           <div id="csv-file-name" style="font-size:0.72rem;color:var(--accent2);margin-bottom:0.5rem;display:none;"></div>
-
-          <!-- OR divider -->
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
             <div style="flex:1;height:1px;background:var(--border);"></div>
             <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">or paste text</div>
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
-
           <textarea id="csv-input" rows="3" placeholder="Maria Santos, maria@acme.com, Acme Corp, Main Congress&#10;John Doe, john@co.com, Startup Co, Pre Congress"></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="importCSV()">Import</button>
@@ -652,7 +645,6 @@ function json(data) {
     <div class="section-sub">Scans sync instantly to Google Sheets</div>
     <div class="sync-banner">✅ Every check-in is written to your Google Sheet in real time.</div>
 
-    <!-- DAY MODE SELECTOR -->
     <div style="margin-bottom:1rem;">
       <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:0.5rem;font-family:'Montserrat',sans-serif;">Scanning Mode:</div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
@@ -786,13 +778,11 @@ function json(data) {
     </div>
   </div>
 
-
   <!-- ════ EMAIL ════ -->
   <div id="panel-email" class="panel">
     <div class="section-title">Email QR Codes</div>
     <div class="section-sub">Send personalised QR codes to attendees via Gmail</div>
 
-    <!-- Email type toggle -->
     <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
       <button class="day-btn active" id="email-tab-attendees" onclick="switchEmailTab('attendees')" style="font-size:0.72rem;">👥 Attendees</button>
       <button class="day-btn" id="email-tab-speakers" onclick="switchEmailTab('speakers')" style="font-size:0.72rem;">🎤 Speakers / VIP</button>
@@ -802,7 +792,6 @@ function json(data) {
       ⚙️ Requires Gmail Apps Script setup — see instructions below before sending.
     </div>
 
-    <!-- Email settings -->
     <div class="card" style="margin-bottom:1.5rem;">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:1rem;">Email Settings</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
@@ -819,7 +808,6 @@ function json(data) {
         <label>Subject Line</label>
         <input type="text" id="email-subject" value="Your Registration &amp; QR Code — Annual Scientific Meeting and East Coast Medical Update 2026">
       </div>
-      <!-- Speaker subject (hidden by default) -->
       <div class="form-group" id="speaker-subject-group" style="display:none;">
         <label>Speaker Subject Line</label>
         <input type="text" id="email-subject-speaker" value="QR Registration and Complimentary Main Congress Attendance — ASM &amp; ECMU 2026">
@@ -851,7 +839,6 @@ Warm regards,
 ASM &amp; ECMU 2026 Secretariat</textarea>
         <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;">Placeholders: <code style="background:var(--cream);padding:1px 4px;border-radius:2px;">{name}</code> <code style="background:var(--cream);padding:1px 4px;border-radius:2px;">{session}</code> <code style="background:var(--cream);padding:1px 4px;border-radius:2px;">{dates}</code> <code style="background:var(--cream);padding:1px 4px;border-radius:2px;">{venue}</code></div>
       </div>
-      <!-- Speaker body (hidden by default) -->
       <div class="form-group" id="speaker-body-group" style="display:none;">
         <label>Speaker Email Body</label>
         <textarea id="email-body-speaker" rows="8" style="font-size:0.78rem;line-height:1.6;" oninput="localStorage.setItem('email_body_speaker', this.value)">Dear {name},
@@ -871,7 +858,6 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
       </div>
     </div>
 
-    <!-- Filter + select -->
     <div class="card" style="margin-bottom:1.5rem;">
       <div style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
         <input type="text" id="email-search" placeholder="Search…" style="width:160px;padding:0.5rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.78rem;background:var(--paper);border:1px solid var(--border);border-radius:3px;outline:none;" oninput="renderEmailList()">
@@ -895,12 +881,10 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
       <div id="email-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0.75rem;max-height:400px;overflow-y:auto;"></div>
     </div>
 
-    <!-- Send button -->
     <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:2rem;">
       <button class="btn btn-primary" id="send-emails-btn" onclick="sendEmails()">✉ Send QR Emails</button>
       <div id="email-send-status" style="font-size:0.78rem;color:var(--muted);"></div>
     </div>
-
   </div>
 
 </main>
@@ -940,6 +924,7 @@ let currentQRData = null;
 let detailAttendeeId = null;
 let scannerStream = null;
 let scanInterval = null;
+let zxingReader = null;
 
 function copyScript() {
   const code = document.getElementById('apps-script-code').textContent;
@@ -961,9 +946,7 @@ function saveURL() {
   launchApp();
 }
 
-function reconnect() {
-  location.reload();
-}
+function reconnect() { location.reload(); }
 
 function launchApp() {
   document.getElementById('setup-screen').style.display = 'none';
@@ -1032,7 +1015,6 @@ async function loadFromSheet() {
         sponsoredBy: r.sponsoredBy || r.sponsoredby || r.SponsoredBy || '',
         notes: r.notes || r.Notes || ''
       }));
-      // Sync emailSentSet from sheet data
       emailSentSet = attendees.filter(a => a.emailSent).map(a => a.id);
       localStorage.setItem('emailSentSet', JSON.stringify(emailSentSet));
       renderAttendeeChips();
@@ -1072,7 +1054,6 @@ function switchTab(name) {
   if (name === 'dashboard') { loadFromSheet(); updateDashboard(); }
   if (name === 'export') { loadFromSheet(); renderExportTable(); }
   if (name === 'email') {
-    // Render immediately with cached data, then refresh from sheet
     if (typeof renderEmailList === 'function') renderEmailList();
     loadFromSheet();
   }
@@ -1092,13 +1073,10 @@ async function addAttendee() {
   const session = document.getElementById('f-session').value;
   if (!name || !email) { toast('Name and email are required.', 'err'); return; }
   if (attendees.find(a => a.email.toLowerCase() === email.toLowerCase())) { toast('This email is already registered.', 'warn'); return; }
-
   const btn = document.getElementById('add-btn');
   btn.textContent = 'Saving…'; btn.disabled = true;
-
   const id = uid();
   const attendee = { id, name, email, org, session, checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
-
   try {
     await apiPost({ action: 'addAttendee', attendee });
     attendees.push(attendee);
@@ -1185,27 +1163,22 @@ function renderAttendeeChips() {
   const grid = document.getElementById('attendee-chips');
   const noDiv = document.getElementById('no-attendees');
   document.getElementById('attendee-count').textContent = `${attendees.length} registered`;
-
   const summaryDiv = document.getElementById('filter-summary');
-  const sessionF2 = document.getElementById('filter-session')?.value || 'all';
-  const statusF2 = document.getElementById('filter-status')?.value || 'all';
-  const sponsoredF2 = document.getElementById('filter-sponsored')?.value || 'all';
-  const isFiltered = sessionF2 !== 'all' || statusF2 !== 'all' || sponsoredF2 !== 'all';
+  const isFiltered = sessionF !== 'all' || statusF !== 'all' || sponsoredF !== 'all';
   if (summaryDiv) {
     if (isFiltered && filtered.length > 0) {
       const checkedIn = filtered.filter(a => a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2).length;
       const sponsored = filtered.filter(a => a.sponsored === 'Yes').length;
       let parts = [`Showing <strong>${filtered.length}</strong> of ${attendees.length} attendees`];
-      if (sessionF2 !== 'all') parts.push(`Session: <strong>${sessionF2}</strong>`);
-      if (statusF2 !== 'all') parts.push(statusF2 === 'present' ? 'Checked In' : 'Not Arrived');
-      if (sponsoredF2 !== 'all') parts.push(`Sponsored: <strong>${sponsoredF2 === 'yes' ? 'Yes' : 'No'}</strong>`);
+      if (sessionF !== 'all') parts.push(`Session: <strong>${sessionF}</strong>`);
+      if (statusF !== 'all') parts.push(statusF === 'present' ? 'Checked In' : 'Not Arrived');
+      if (sponsoredF !== 'all') parts.push(`Sponsored: <strong>${sponsoredF === 'yes' ? 'Yes' : 'No'}</strong>`);
       parts.push(`Checked in: <strong>${checkedIn}</strong>`);
-      if (sponsoredF2 !== 'no') parts.push(`Sponsored: <strong>${sponsored}</strong>`);
+      if (sponsoredF !== 'no') parts.push(`Sponsored: <strong>${sponsored}</strong>`);
       summaryDiv.innerHTML = parts.join(' &nbsp;·&nbsp; ');
       summaryDiv.style.display = 'block';
     } else { summaryDiv.style.display = 'none'; }
   }
-
   if (filtered.length === 0) { grid.innerHTML = ''; noDiv.style.display = 'block'; return; }
   noDiv.style.display = 'none';
   grid.innerHTML = filtered.map(a => `
@@ -1214,7 +1187,7 @@ function renderAttendeeChips() {
       <div style="flex:1;min-width:0;">
         <div class="chip-name">${a.name}</div>
         <div class="chip-meta">${a.session}${a.org?' · '+a.org:''}</div>
-        ${a.notes ? '<div style=\"margin-top:3px;\"><span style=\"font-size:0.6rem;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-weight:600;\">' + a.notes + '</span></div>' : ''}
+        ${a.notes ? '<div style="margin-top:3px;"><span style="font-size:0.6rem;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-weight:600;">' + a.notes + '</span></div>' : ''}
       </div>
       <div class="chip-status ${(a.checkedIn_pre||a.checkedIn_main1||a.checkedIn_main2)?'present':'absent'}">${buildCheckinBadge(a)}</div>
     </div>`).join('');
@@ -1239,7 +1212,6 @@ function readCSVFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const text = e.target.result;
-    // Strip header row if it looks like a header (contains "name" or "email" as first cell)
     const lines = text.trim().split(/\r?\n/);
     const firstCell = lines[0].split(',')[0].trim().toLowerCase();
     const isHeader = firstCell === 'name' || firstCell === 'full name' || firstCell === 'nama';
@@ -1261,20 +1233,14 @@ function clearCSVInput() {
 }
 
 function parseCSVLine(line) {
-  // Properly handles quoted fields with commas inside
   const result = [];
   let current = '';
   let inQuotes = false;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += ch;
-    }
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+    else { current += ch; }
   }
   result.push(current.trim());
   return result;
@@ -1291,13 +1257,9 @@ async function importCSV() {
     if (parts.length < 2) continue;
     const [name, email, org=''] = parts;
     let session = parts[3] || 'Main Congress';
-    // Normalize session casing
     const sessionMap = {
-      'pre congress': 'Pre Congress',
-      'main congress': 'Main Congress',
-      'both congress': 'Both Congress',
-      'speaker/vip': 'Speaker/VIP',
-      'facilitator': 'Facilitator'
+      'pre congress': 'Pre Congress', 'main congress': 'Main Congress',
+      'both congress': 'Both Congress', 'speaker/vip': 'Speaker/VIP', 'facilitator': 'Facilitator'
     };
     session = sessionMap[session.toLowerCase().trim()] || session.trim();
     if (!name || !email) continue;
@@ -1331,13 +1293,11 @@ function openDetail(id) {
   const daysSummary = [a.checkedIn_pre?'Pre':'', a.checkedIn_main1?'M-Day1':'', a.checkedIn_main2?'M-Day2':''].filter(Boolean).join(', ');
   document.getElementById('md-details').textContent = `${a.email}${a.org?' · '+a.org:''} · ${a.session}\nID: ${a.id}${daysSummary?' · Checked in: '+daysSummary:''}`;
   const btn = document.getElementById('md-checkin-btn');
-  const anyIn = a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2;
   btn.textContent = 'Check-in Now';
   btn.disabled = false;
   const qrDiv = document.getElementById('md-qr');
   qrDiv.innerHTML = '';
-  const payload = JSON.stringify({ id: a.id, name: a.name, email: a.email });
-  new QRCode(qrDiv, { text: payload, width: 160, height: 160, colorDark: '#0f0e0c', correctLevel: QRCode.CorrectLevel.H });
+  new QRCode(qrDiv, { text: a.id, width: 160, height: 160, colorDark: '#0f0e0c', correctLevel: QRCode.CorrectLevel.H });
   document.getElementById('modal-detail').classList.add('open');
 }
 
@@ -1372,8 +1332,7 @@ function openAllQR() {
     const orgEl = document.createElement('div'); orgEl.className = 'badge-org'; orgEl.textContent = a.session;
     card.appendChild(nameEl); card.appendChild(orgEl);
     grid.appendChild(card);
-    const payload = JSON.stringify({ id: a.id, name: a.name, email: a.email });
-    new QRCode(qrWrap, { text: payload, width: 120, height: 120, colorDark: '#0f0e0c', correctLevel: QRCode.CorrectLevel.H });
+    new QRCode(qrWrap, { text: a.id, width: 120, height: 120, colorDark: '#0f0e0c', correctLevel: QRCode.CorrectLevel.H });
     card.onclick = () => {
       const c = qrWrap.querySelector('canvas');
       if (!c) return;
@@ -1383,8 +1342,7 @@ function openAllQR() {
   });
 }
 
-let zxingReader = null;
-
+// ════ FIXED SCANNER ════
 async function startScanner() {
   try {
     document.getElementById('scanner-idle').style.display = 'none';
@@ -1393,8 +1351,9 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    zxingReader = new ZXing.BrowserQRCodeReader();
     const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -1403,21 +1362,41 @@ async function startScanner() {
     scannerStream = stream;
     await video.play();
 
-    zxingReader.decodeFromVideoElement(video, (result, err) => {
-      if (result) {
-        let text = result.getText();
-        console.log('QR scanned raw:', text);
-        // Strip any wrapping smart quotes or regular quotes
-        text = text.replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
-        console.log('QR scanned cleaned:', text);
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    function scanLoop() {
+      if (!scannerStream) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         try {
-          const data = JSON.parse(text);
-          if (data.id) processCheckIn(data.id);
+          const luminanceSource = new ZXing.RGBLuminanceSource(
+            imageData.data, canvas.width, canvas.height
+          );
+          const binaryBitmap = new ZXing.BinaryBitmap(
+            new ZXing.HybridBinarizer(luminanceSource)
+          );
+          const result = new ZXing.QRCodeReader().decode(binaryBitmap);
+          if (result) {
+            let text = result.getText().replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
+            try {
+              const data = JSON.parse(text);
+              if (data.id) processCheckIn(data.id);
+            } catch(e) {
+              if (text.startsWith('CP-')) processCheckIn(text);
+            }
+          }
         } catch(e) {
-          if (text.startsWith('CP-')) processCheckIn(text);
+          // No QR found in this frame — keep looping
         }
       }
-    });
+      scanInterval = requestAnimationFrame(scanLoop);
+    }
+    scanInterval = requestAnimationFrame(scanLoop);
+
   } catch(e) {
     console.error('Scanner error:', e);
     toast('Camera access denied. Use manual check-in below.', 'err');
@@ -1432,7 +1411,7 @@ async function startScanner() {
 function stopScanner() {
   if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
-  clearInterval(scanInterval);
+  if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
   document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('scanner-idle').style.display = 'flex';
   document.getElementById('scan-overlay').style.display = 'none';
@@ -1446,23 +1425,15 @@ function scanFromFile(event) {
   const img = new Image();
   const url = URL.createObjectURL(file);
   img.onload = function() {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    // Try ZXing on the image
     try {
       const reader = new ZXing.BrowserQRCodeReader();
       reader.decodeFromImageElement(img).then(result => {
-        const text = result.getText();
-        console.log('File QR scanned:', text);
+        let text = result.getText().replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
         try {
           const data = JSON.parse(text);
           if (data.id) processCheckIn(data.id);
         } catch(e) {
-          if (text && text.trim().startsWith('CP-')) processCheckIn(text.trim());
+          if (text && text.startsWith('CP-')) processCheckIn(text);
         }
       }).catch(err => {
         toast('Could not read QR code. Try again or use Manual Check-in.', 'err');
@@ -1477,8 +1448,6 @@ function scanFromFile(event) {
   img.src = url;
 }
 
-function scanFrame() {}
-
 let lastScannedId = null, lastScannedTime = 0;
 function processCheckIn(id) {
   if (id === lastScannedId && Date.now() - lastScannedTime < 3000) return;
@@ -1490,12 +1459,7 @@ let currentDay = 'pre';
 
 function setDay(day) {
   currentDay = day;
-  const titles = {
-    pre: 'Pre Congress',
-    main1: 'Main Congress — Day 1',
-    main2: 'Main Congress — Day 2',
-    speaker: 'Speaker / VIP'
-  };
+  const titles = { pre: 'Pre Congress', main1: 'Main Congress — Day 1', main2: 'Main Congress — Day 2', speaker: 'Speaker / VIP' };
   const descriptions = {
     pre: 'Pre Congress & Both Congress attendees can check in.',
     main1: 'Main Congress & Both Congress attendees can check in.',
@@ -1552,7 +1516,6 @@ async function checkInById(id) {
         <div class="result-meta">Already checked in for ${getDayLabel(currentDay)}</div>`;
       toast(`${localAttendee.name} already checked in for ${getDayLabel(currentDay)}.`, 'warn');
     } else if (result.success) {
-      // Update local attendee day-specific checkin
       const dayKey = 'checkedIn_' + currentDay;
       localAttendee[dayKey] = true;
       localAttendee['checkInTime_' + currentDay] = new Date().toISOString();
@@ -1617,10 +1580,9 @@ function updateDashboard() {
   document.getElementById('d-absent').textContent = total - present;
   document.getElementById('d-bar').style.width = pct + '%';
   document.getElementById('d-pct').textContent = pct + '% attendance rate';
-  const last = attendees.filter(a=>a.checkedIn).sort((a,b)=>new Date(b.checkInTime)-new Date(a.checkInTime))[0];
+  const last = attendees.filter(a=>a.checkedIn_pre||a.checkedIn_main1||a.checkedIn_main2).sort((a,b)=>new Date(b.checkInTime_main1||b.checkInTime_pre||0)-new Date(a.checkInTime_main1||a.checkInTime_pre||0))[0];
   document.getElementById('d-last').textContent = last ? last.name.split(' ')[0] : '—';
-  document.getElementById('d-last-time').textContent = last ? fmtTime(last.checkInTime) : '—';
-  // Per-day stats
+  document.getElementById('d-last-time').textContent = last ? fmtTime(last.checkInTime_main1||last.checkInTime_pre) : '—';
   const dayStats = [
     { key: 'pre', label: 'Pre Congress', col: 'checkedIn_pre' },
     { key: 'main1', label: 'Main Congress — Day 1', col: 'checkedIn_main1' },
@@ -1642,7 +1604,6 @@ function updateDashboard() {
     </div>`;
   });
   document.getElementById('session-breakdown').innerHTML = breakdownHtml || '<div style="color:var(--muted);font-size:0.78rem;">No data yet.</div>';
-  // Timeline - collect all check-ins across days
   let allCheckins = [];
   attendees.forEach(a => {
     if (a.checkedIn_pre) allCheckins.push({ name: a.name, session: a.session, time: a.checkInTime_pre, day: 'Pre Congress' });
@@ -1705,11 +1666,7 @@ function exportJSON() {
   toast('JSON exported!');
 }
 
-// Always launch with hardcoded URL
-launchApp();
-
 function playBeep() {
-  // Beep
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = ctx.createOscillator();
@@ -1722,11 +1679,8 @@ function playBeep() {
     gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.3);
-  } catch(e) { console.log('Beep not supported'); }
-  // Vibrate
-  try {
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  } catch(e) { console.log('Vibration not supported'); }
+  } catch(e) {}
+  try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch(e) {}
 }
 
 // ════ EMAIL FUNCTIONS ════
@@ -1741,31 +1695,19 @@ function getSessionDates(session) {
 
 function buildEmailBody(attendee, fromName) {
   const { dates, venue } = getSessionDates(attendee.session);
-
-  // Get user-edited template or fallback to default
   const isSpeaker = typeof currentEmailTab !== 'undefined' && currentEmailTab === 'speakers';
-  const savedTemplate = isSpeaker
-    ? (localStorage.getItem('email_body_speaker') || '')
-    : (localStorage.getItem('email_body_template') || '');
-  const templateEl = isSpeaker
-    ? document.getElementById('email-body-speaker')
-    : document.getElementById('email-body-template');
-  const template = (templateEl && templateEl.value) || savedTemplate || '';
-
-  // Replace placeholders
+  const templateEl = isSpeaker ? document.getElementById('email-body-speaker') : document.getElementById('email-body-template');
+  const template = (templateEl && templateEl.value) || '';
   const plainText = template
     .replace(/{name}/g, attendee.name)
     .replace(/{session}/g, attendee.session)
     .replace(/{dates}/g, dates)
     .replace(/{venue}/g, venue);
-
-  // Convert plain text to HTML with styling
   const paragraphs = plainText.split('\n').map(line => {
     if (line.trim() === '') return '<br>';
     if (line.startsWith('-')) return '<li style="font-size:0.88rem;margin:0.2rem 0;">' + line.slice(1).trim() + '</li>';
     return '<p style="font-size:0.88rem;line-height:1.7;margin:0 0 0.5rem;">' + line + '</p>';
   }).join('');
-
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>'
     + '<body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:2rem;color:#1a1a1a;background:#fff;">'
     + '<div style="border-top:4px solid #9b2d8e;padding-top:1.5rem;margin-bottom:2rem;">'
@@ -1784,19 +1726,15 @@ let currentEmailTab = 'attendees';
 
 function switchEmailTab(tab) {
   currentEmailTab = tab;
-  // Toggle buttons
   document.querySelectorAll('[id^="email-tab-"]').forEach(b => b.classList.remove('active'));
   document.getElementById('email-tab-' + tab).classList.add('active');
-  // Toggle fields
   const isAttendees = tab === 'attendees';
   document.getElementById('email-subject').closest('.form-group').style.display = isAttendees ? '' : 'none';
   document.getElementById('email-body-template').closest('.form-group').style.display = isAttendees ? '' : 'none';
   document.getElementById('speaker-subject-group').style.display = isAttendees ? 'none' : '';
   document.getElementById('speaker-body-group').style.display = isAttendees ? 'none' : '';
-  // Update session filter and re-render after DOM updates
   const sessionFilter = document.getElementById('email-session-filter');
   sessionFilter.value = tab === 'speakers' ? 'Speaker/VIP' : 'all';
-  // Use setTimeout to ensure filter value is set before rendering
   setTimeout(() => renderEmailList(), 0);
 }
 
@@ -1814,12 +1752,8 @@ function renderEmailList() {
   const sentF = document.getElementById('email-sent-filter')?.value || 'all';
   const filtered = attendees.filter(a => {
     if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q)) return false;
-    // Speaker tab always filters to Speaker/VIP only
-    if (currentEmailTab === 'speakers') {
-      if (a.session !== 'Speaker/VIP') return false;
-    } else {
-      if (sessionF !== 'all' && a.session !== sessionF) return false;
-    }
+    if (currentEmailTab === 'speakers') { if (a.session !== 'Speaker/VIP') return false; }
+    else { if (sessionF !== 'all' && a.session !== sessionF) return false; }
     if (sentF === 'sent' && !emailSentSet.includes(a.id)) return false;
     if (sentF === 'unsent' && emailSentSet.includes(a.id)) return false;
     return true;
@@ -1861,9 +1795,7 @@ async function sendEmails() {
   const fromName = document.getElementById('email-from-name').value.trim() || 'ASM & ECMU 2026 Secretariat';
   const replyTo = document.getElementById('email-reply-to').value.trim() || 'medicalmasterclassHTAA@gmail.com';
   const isSpeakerTab = currentEmailTab === 'speakers';
-  const subject = isSpeakerTab
-    ? document.getElementById('email-subject-speaker').value.trim()
-    : document.getElementById('email-subject').value.trim();
+  const subject = isSpeakerTab ? document.getElementById('email-subject-speaker').value.trim() : document.getElementById('email-subject').value.trim();
   const checked = [...document.querySelectorAll('#email-list input[type=checkbox]:checked')];
   if (checked.length === 0) { toast('Please select at least one attendee.', 'warn'); return; }
   const btn = document.getElementById('send-emails-btn');
@@ -1883,15 +1815,13 @@ async function sendEmails() {
       const result = await res.json();
       if (result.success) {
         sent++;
-        // Mark as sent in Google Sheet
-        try { await apiPost({ action: 'markEmailSent', id: id }); } catch(e) { console.log('Sheet mark failed:', e); }
-        // Update local state
+        try { await apiPost({ action: 'markEmailSent', id: id }); } catch(e) {}
         if (!emailSentSet.includes(id)) emailSentSet.push(id);
         localStorage.setItem('emailSentSet', JSON.stringify(emailSentSet));
         const localA = attendees.find(a => a.id === id);
         if (localA) localA.emailSent = true;
-      } else { failed++; console.error('Failed:', attendee.name, result.error); }
-    } catch(e) { failed++; console.error('Error:', attendee.name, e); }
+      } else { failed++; }
+    } catch(e) { failed++; }
     await new Promise(r => setTimeout(r, 600));
   }
   btn.disabled = false; btn.textContent = 'Send QR Emails';
@@ -1905,21 +1835,13 @@ function generateQRCanvas(text) {
     const tempDiv = document.createElement('div');
     tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
     document.body.appendChild(tempDiv);
-    // Use lower error correction to support longer text
     new QRCode(tempDiv, { text, width: 300, height: 300, colorDark: '#0f0e0c', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
     setTimeout(() => { const canvas = tempDiv.querySelector('canvas'); document.body.removeChild(tempDiv); resolve(canvas); }, 200);
   });
 }
 
-function copyEmailScript() {
-  const code = document.getElementById('email-script-code').textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.querySelector('[onclick="copyEmailScript()"]');
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy Code', 2000);
-  });
-}
-
+// Always launch with hardcoded URL
+launchApp();
 </script>
 </body>
 </html>
