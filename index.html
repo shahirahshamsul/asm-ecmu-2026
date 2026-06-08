@@ -685,6 +685,10 @@ function json(data) {
         <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
           <button class="btn btn-primary" id="start-scan-btn" onclick="startScanner()">▶ Start Camera</button>
           <button class="btn btn-ghost" id="stop-scan-btn" onclick="stopScanner()" style="display:none;">■ Stop</button>
+          <label class="btn btn-green" style="cursor:pointer;">
+            📷 iPhone Scan
+            <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="scanFromFile(event)">
+          </label>
         </div>
       </div>
 
@@ -1431,6 +1435,43 @@ function stopScanner() {
   document.getElementById('scan-overlay').style.display = 'none';
   document.getElementById('start-scan-btn').style.display = 'inline-block';
   document.getElementById('stop-scan-btn').style.display = 'none';
+}
+
+function scanFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Try ZXing on the image
+    try {
+      const reader = new ZXing.BrowserQRCodeReader();
+      reader.decodeFromImageElement(img).then(result => {
+        const text = result.getText();
+        console.log('File QR scanned:', text);
+        try {
+          const data = JSON.parse(text);
+          if (data.id) processCheckIn(data.id);
+        } catch(e) {
+          if (text && text.trim().startsWith('CP-')) processCheckIn(text.trim());
+        }
+      }).catch(err => {
+        toast('Could not read QR code. Try again or use Manual Check-in.', 'err');
+        console.error('File scan error:', err);
+      });
+    } catch(e) {
+      toast('Could not read QR code.', 'err');
+    }
+    URL.revokeObjectURL(url);
+    event.target.value = '';
+  };
+  img.src = url;
 }
 
 function scanFrame() {}
