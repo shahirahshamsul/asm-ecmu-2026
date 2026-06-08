@@ -1521,6 +1521,13 @@ function extractId(text) {
     if (a) return a.id;
   }
 
+  // Format 4: numeric timestamp ID (old QR codes sent before this app)
+  // These attendees have their timestamp stored as their ID in the sheet
+  if (/^\d+$/.test(text)) {
+    const a = attendees.find(x => String(x.id) === text);
+    if (a) return a.id;
+  }
+
   return null;
 }
 
