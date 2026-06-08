@@ -1405,13 +1405,16 @@ async function startScanner() {
 
     zxingReader.decodeFromVideoElement(video, (result, err) => {
       if (result) {
-        const text = result.getText();
-        console.log('QR scanned:', text);
+        let text = result.getText();
+        console.log('QR scanned raw:', text);
+        // Strip any wrapping smart quotes or regular quotes
+        text = text.replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
+        console.log('QR scanned cleaned:', text);
         try {
           const data = JSON.parse(text);
           if (data.id) processCheckIn(data.id);
         } catch(e) {
-          if (text && text.trim().startsWith('CP-')) processCheckIn(text.trim());
+          if (text.startsWith('CP-')) processCheckIn(text);
         }
       }
     });
