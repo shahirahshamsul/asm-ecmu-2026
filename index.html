@@ -403,8 +403,7 @@ function doPost(e) {
     sheet.appendRow([
       a.id, a.name, a.email, a.org||"", a.session,
       "false", "", "false", "", "false", "",
-      new Date().toISOString(), "false", "",
-      a.sponsored||"No", a.sponsoredBy||""
+      new Date().toISOString(), "false", ""
     ]);
     return json({ success: true });
   }
@@ -552,17 +551,6 @@ function json(data) {
             <option value="Facilitator">Facilitator</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Sponsored Candidate?</label>
-          <select id="f-sponsored" onchange="toggleSponsorField()">
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-        </div>
-        <div class="form-group" id="sponsor-company-group" style="display:none;">
-          <label>Sponsored By (Company)</label>
-          <input type="text" id="f-sponsored-by" placeholder="e.g. Pfizer, AstraZeneca">
-        </div>
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
           <button class="btn btn-primary" id="add-btn" onclick="addAttendee()">Generate QR Badge</button>
           <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
@@ -570,7 +558,7 @@ function json(data) {
 
         <div class="bulk-area">
           <h3>Bulk CSV Import</h3>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.75rem;">Columns must be in order: <code style="background:var(--cream);padding:0.1rem 0.4rem;border-radius:2px;">Name, Email, Organization, Session, Sponsored, SponsoredBy</code> (last 2 optional)</p>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.75rem;">Columns must be in order: <code style="background:var(--cream);padding:0.1rem 0.4rem;border-radius:2px;">Name, Email, Organization, Session</code></p>
 
           <!-- File upload -->
           <div style="border:2px dashed var(--border);border-radius:4px;padding:1.25rem;text-align:center;cursor:pointer;background:var(--cream);margin-bottom:0.75rem;transition:border-color 0.2s;"
@@ -592,7 +580,7 @@ function json(data) {
             <div style="flex:1;height:1px;background:var(--border);"></div>
           </div>
 
-          <textarea id="csv-input" rows="3" placeholder="Maria Santos, maria@acme.com, Acme Corp, Main Congress, Yes, Pfizer&#10;John Doe, john@co.com, Startup Co, Pre Congress"></textarea>
+          <textarea id="csv-input" rows="3" placeholder="Maria Santos, maria@acme.com, Acme Corp, Main Congress&#10;John Doe, john@co.com, Startup Co, Pre Congress"></textarea>
           <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="importCSV()">Import</button>
             <button class="btn btn-ghost btn-sm" onclick="clearCSVInput()">Clear</button>
@@ -782,17 +770,12 @@ function json(data) {
           <option value="Speaker/VIP">Speaker / VIP</option>
           <option value="Facilitator">Facilitator</option>
         </select>
-        <select id="exp-sponsored" onchange="renderExportTable()" style="padding:0.4rem 0.6rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;background:var(--paper);border:1px solid var(--border);border-radius:3px;outline:none;color:var(--ink);">
-          <option value="all">All Candidates</option>
-          <option value="yes">Sponsored</option>
-          <option value="no">Not Sponsored</option>
-        </select>
         <button class="btn btn-blue btn-sm" onclick="loadFromSheet();renderExportTable();">↻ Refresh</button>
         <span style="font-size:0.72rem;color:var(--muted);" id="exp-count">0 results</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Organization</th><th>Session</th><th>Sponsored</th><th>Sponsored By</th><th>Pre Congress</th><th>Main Congress D1</th><th>Main Congress D2</th><th>Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Organization</th><th>Session</th><th>Pre Congress</th><th>Main Congress D1</th><th>Main Congress D2</th><th>Actions</th></tr></thead>
           <tbody id="export-tbody"></tbody>
         </table>
       </div>
@@ -900,11 +883,6 @@ ASM &amp; ECMU 2026 Secretariat</textarea>
           <option value="all">All Attendees</option>
           <option value="unsent">Not Yet Emailed</option>
           <option value="sent">Already Emailed</option>
-        </select>
-        <select id="email-sponsored-filter" onchange="renderEmailList()" style="padding:0.5rem 0.75rem;font-family:'Montserrat',sans-serif;font-size:0.78rem;background:var(--paper);border:1px solid var(--border);border-radius:3px;outline:none;">
-          <option value="all">All Candidates</option>
-          <option value="yes">Sponsored</option>
-          <option value="no">Not Sponsored</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="selectAllEmails()">Select All</button>
         <button class="btn btn-ghost btn-sm" onclick="deselectAllEmails()">Deselect All</button>
@@ -1044,7 +1022,7 @@ async function loadFromSheet() {
         checkedIn_main2: r.checkedIn_main2 === 'true' || r.checkedIn_main2 === true,
         checkInTime_main2: r.checkInTime_main2 || null,
         createdAt: r.createdAt || '',
-        emailSent: r.emailSent === 'true' || r.emailSent === true || r.emailSent === 'TRUE' || r.emailSent === 'True',
+        emailSent: r.emailSent === 'true' || r.emailSent === true,
         emailSentTime: r.emailSentTime || null,
         sponsored: (r.sponsored === 'Yes' || r.sponsored === 'yes' || r.sponsored === 'TRUE' || r.sponsored === true) ? 'Yes' : 'No',
         sponsoredBy: r.sponsoredBy || r.sponsoredby || r.SponsoredBy || '',
@@ -1108,8 +1086,6 @@ async function addAttendee() {
   const email = document.getElementById('f-email').value.trim();
   const org = document.getElementById('f-org').value.trim();
   const session = document.getElementById('f-session').value;
-  const sponsored = document.getElementById('f-sponsored').value;
-  const sponsoredBy = document.getElementById('f-sponsored-by').value.trim();
   if (!name || !email) { toast('Name and email are required.', 'err'); return; }
   if (attendees.find(a => a.email.toLowerCase() === email.toLowerCase())) { toast('This email is already registered.', 'warn'); return; }
 
@@ -1117,7 +1093,7 @@ async function addAttendee() {
   btn.textContent = 'Saving…'; btn.disabled = true;
 
   const id = uid();
-  const attendee = { id, name, email, org, session, sponsored, sponsoredBy, checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
+  const attendee = { id, name, email, org, session, checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
 
   try {
     await apiPost({ action: 'addAttendee', attendee });
@@ -1131,17 +1107,9 @@ async function addAttendee() {
   btn.textContent = 'Generate QR Badge'; btn.disabled = false;
 }
 
-function toggleSponsorField() {
-  const val = document.getElementById('f-sponsored').value;
-  document.getElementById('sponsor-company-group').style.display = val === 'Yes' ? '' : 'none';
-  if (val === 'No') document.getElementById('f-sponsored-by').value = '';
-}
-
 function clearForm() {
-  ['f-name','f-email','f-org','f-sponsored-by'].forEach(id => document.getElementById(id).value = '');
+  ['f-name','f-email','f-org'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-session').value = 'Main Congress';
-  document.getElementById('f-sponsored').value = 'No';
-  document.getElementById('sponsor-company-group').style.display = 'none';
 }
 
 function generateQRFor(attendee) {
@@ -1214,28 +1182,24 @@ function renderAttendeeChips() {
   const noDiv = document.getElementById('no-attendees');
   document.getElementById('attendee-count').textContent = `${attendees.length} registered`;
 
-  // Build filter summary
   const summaryDiv = document.getElementById('filter-summary');
   const sessionF2 = document.getElementById('filter-session')?.value || 'all';
   const statusF2 = document.getElementById('filter-status')?.value || 'all';
   const sponsoredF2 = document.getElementById('filter-sponsored')?.value || 'all';
   const isFiltered = sessionF2 !== 'all' || statusF2 !== 'all' || sponsoredF2 !== 'all';
-
   if (summaryDiv) {
     if (isFiltered && filtered.length > 0) {
       const checkedIn = filtered.filter(a => a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2).length;
       const sponsored = filtered.filter(a => a.sponsored === 'Yes').length;
       let parts = [`Showing <strong>${filtered.length}</strong> of ${attendees.length} attendees`];
       if (sessionF2 !== 'all') parts.push(`Session: <strong>${sessionF2}</strong>`);
-      if (statusF2 !== 'all') parts.push(`Status: <strong>${statusF2 === 'present' ? 'Checked In' : 'Not Arrived'}</strong>`);
+      if (statusF2 !== 'all') parts.push(statusF2 === 'present' ? 'Checked In' : 'Not Arrived');
       if (sponsoredF2 !== 'all') parts.push(`Sponsored: <strong>${sponsoredF2 === 'yes' ? 'Yes' : 'No'}</strong>`);
       parts.push(`Checked in: <strong>${checkedIn}</strong>`);
-      if (sponsoredF2 !== 'no') parts.push(`Sponsored candidates: <strong>${sponsored}</strong>`);
+      if (sponsoredF2 !== 'no') parts.push(`Sponsored: <strong>${sponsored}</strong>`);
       summaryDiv.innerHTML = parts.join(' &nbsp;·&nbsp; ');
       summaryDiv.style.display = 'block';
-    } else {
-      summaryDiv.style.display = 'none';
-    }
+    } else { summaryDiv.style.display = 'none'; }
   }
 
   if (filtered.length === 0) { grid.innerHTML = ''; noDiv.style.display = 'block'; return; }
@@ -1323,8 +1287,6 @@ async function importCSV() {
     if (parts.length < 2) continue;
     const [name, email, org=''] = parts;
     let session = parts[3] || 'Main Congress';
-    const sponsored = parts[4] || 'No';
-    const sponsoredBy = parts[5] || '';
     // Normalize session casing
     const sessionMap = {
       'pre congress': 'Pre Congress',
@@ -1337,7 +1299,7 @@ async function importCSV() {
     if (!name || !email) continue;
     if (attendees.find(a => a.email.toLowerCase() === email.toLowerCase())) { skipped++; continue; }
     const id = uid();
-    const attendee = { id, name, email, org, session, sponsored: sponsored.trim() || 'No', sponsoredBy: sponsoredBy.trim() || '', checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
+    const attendee = { id, name, email, org, session, checkedIn_pre: false, checkInTime_pre: null, checkedIn_main1: false, checkInTime_main1: null, checkedIn_main2: false, checkInTime_main2: null, createdAt: new Date().toISOString() };
     try {
       await apiPost({ action: 'addAttendee', attendee });
       attendees.push(attendee);
@@ -1649,15 +1611,12 @@ function getFilteredAttendees() {
   const q = (document.getElementById('exp-search')?.value||'').toLowerCase();
   const status = document.getElementById('exp-filter')?.value || 'all';
   const session = document.getElementById('exp-session')?.value || 'all';
-  const sponsoredF = document.getElementById('exp-sponsored')?.value || 'all';
   return attendees.filter(a => {
     if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q)) return false;
     const anyCheckedIn = a.checkedIn_pre || a.checkedIn_main1 || a.checkedIn_main2;
     if (status === 'present' && !anyCheckedIn) return false;
     if (status === 'absent' && anyCheckedIn) return false;
     if (session !== 'all' && a.session !== session) return false;
-    if (sponsoredF === 'yes' && a.sponsored !== 'Yes') return false;
-    if (sponsoredF === 'no' && a.sponsored === 'Yes') return false;
     return true;
   });
 }
@@ -1670,8 +1629,6 @@ function renderExportTable() {
       <td>${i+1}</td><td style="font-weight:500;">${a.name}</td>
       <td style="color:var(--muted);">${a.email}</td><td>${a.org||'—'}</td>
       <td>${a.session}</td>
-      <td>${a.sponsored||'No'}</td>
-      <td>${a.sponsoredBy||'—'}</td>
       <td><span class="badge ${a.checkedIn_pre?'badge-present':'badge-absent'}">${a.checkedIn_pre?'✓':'—'}</span></td>
       <td><span class="badge ${a.checkedIn_main1?'badge-present':'badge-absent'}">${a.checkedIn_main1?'✓':'—'}</span></td>
       <td><span class="badge ${a.checkedIn_main2?'badge-present':'badge-absent'}">${a.checkedIn_main2?'✓':'—'}</span></td>
@@ -1758,22 +1715,17 @@ function buildEmailBody(attendee, fromName) {
     return '<p style="font-size:0.88rem;line-height:1.7;margin:0 0 0.5rem;">' + line + '</p>';
   }).join('');
 
-  const sponsoredRow = (attendee.sponsored === 'Yes' && attendee.sponsoredBy)
-    ? '<div style="background:#f9f3ff;border:1px solid #d9a0d9;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;">'
-      + '<p style="font-size:0.78rem;color:#9b2d8e;margin:0;"><strong>Sponsored by: ' + attendee.sponsoredBy + '</strong></p>'
-      + '</div>'
-    : '';
-
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>'
     + '<body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:2rem;color:#1a1a1a;background:#fff;">'
     + '<div style="border-top:4px solid #9b2d8e;padding-top:1.5rem;margin-bottom:2rem;">'
     + '<h2 style="font-size:1.4rem;color:#9b2d8e;margin:0 0 0.25rem;">Annual Scientific Meeting</h2>'
     + '<h2 style="font-size:1.4rem;color:#6b1f7a;margin:0;">&amp; East Coast Medical Update 2026</h2>'
     + '<p style="font-size:0.8rem;color:#888;margin:0.5rem 0 0;font-style:italic;">From Innovations to Updates</p></div>'
-    + sponsoredRow
+    + (attendee.sponsored === 'Yes' && attendee.sponsoredBy ? '<div style="background:#f9f3ff;border:1px solid #d9a0d9;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;"><p style="font-size:0.78rem;color:#9b2d8e;margin:0;"><strong>Sponsored by: ' + attendee.sponsoredBy + '</strong></p></div>' : '')
     + paragraphs
     + '<div style="border-top:1px solid #e0d0e8;padding-top:1rem;margin-top:1.5rem;">'
     + '<p style="font-size:0.88rem;font-weight:600;margin:0;color:#6b1f7a;">' + fromName + '</p>'
+    + '<p style="font-size:0.78rem;color:#888;margin:0.25rem 0 0;">Annual Scientific Meeting &amp; East Coast Medical Update 2026</p>'
     + '</div></body></html>';
 }
 
@@ -1809,7 +1761,6 @@ function renderEmailList() {
   const q = (document.getElementById('email-search')?.value || '').toLowerCase();
   const sessionF = document.getElementById('email-session-filter')?.value || 'all';
   const sentF = document.getElementById('email-sent-filter')?.value || 'all';
-  const emailSponsoredF = document.getElementById('email-sponsored-filter')?.value || 'all';
   const filtered = attendees.filter(a => {
     if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q)) return false;
     // Speaker tab always filters to Speaker/VIP only
@@ -1820,8 +1771,6 @@ function renderEmailList() {
     }
     if (sentF === 'sent' && !emailSentSet.includes(a.id)) return false;
     if (sentF === 'unsent' && emailSentSet.includes(a.id)) return false;
-    if (emailSponsoredF === 'yes' && a.sponsored !== 'Yes') return false;
-    if (emailSponsoredF === 'no' && a.sponsored === 'Yes') return false;
     return true;
   });
   if (filtered.length === 0) { list.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:1rem;">No attendees match your filters.</div>'; updateEmailCount(); return; }
