@@ -12,6 +12,7 @@
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -1342,7 +1343,7 @@ function openAllQR() {
   });
 }
 
-// ════ SCANNER — uses jsQR via canvas loop ════
+// ════ SCANNER ════
 async function startScanner() {
   try {
     document.getElementById('scanner-idle').style.display = 'none';
@@ -1351,45 +1352,38 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+
     const video = document.getElementById('scanner-video');
-    const canvas = document.getElementById('scanner-canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    video.srcObject = stream;
-    scannerStream = stream;
-    await video.play();
-
-    function tick() {
-      if (!scannerStream) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'attemptBoth'
-        });
-        if (code && code.data) {
-          let text = code.data.replace(/^['"\u2018\u2019\u201c\u201d]+|['"\u2018\u2019\u201c\u201d]+$/g, '').trim();
-          console.log('QR scanned:', text);
-          try {
-            const data = JSON.parse(text);
-            if (data.id) processCheckIn(data.id);
-          } catch(e) {
-            if (text.startsWith('CP-')) processCheckIn(text);
-          }
-        }
+    // Get back camera if available
+    let deviceId = undefined;
+    try {
+      const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+      if (devices && devices.length > 0) {
+        const back = devices.find(d => /back|rear|environment/i.test(d.label));
+        deviceId = back ? back.deviceId : devices[devices.length - 1].deviceId;
       }
-      scanInterval = requestAnimationFrame(tick);
-    }
-    scanInterval = requestAnimationFrame(tick);
+    } catch(e) { /* no device list, use default */ }
+
+    zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+      if (result) {
+        let text = result.getText().trim();
+        console.log('QR scanned:', text);
+        try {
+          const data = JSON.parse(text);
+          if (data.id) { processCheckIn(data.id); return; }
+        } catch(e) {}
+        if (text.startsWith('CP-')) processCheckIn(text);
+      }
+    });
+
+    // Store stream reference
+    setTimeout(() => { if (video.srcObject) scannerStream = video.srcObject; }, 1000);
 
   } catch(e) {
     console.error('Scanner error:', e);
-    toast('Camera access denied. Use manual check-in or iPhone Scan below.', 'err');
+    toast('Camera access denied. Use iPhone Scan or Manual Check-in below.', 'err');
     document.getElementById('scanner-idle').style.display = 'flex';
     document.getElementById('scanner-video').style.display = 'none';
     document.getElementById('scan-overlay').style.display = 'none';
@@ -1399,8 +1393,8 @@ async function startScanner() {
 }
 
 function stopScanner() {
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
-  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  try { if (zxingReader) { zxingReader.reset(); zxingReader = null; } } catch(e) {}
+  try { if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; } } catch(e) {}
   if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
   document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('scanner-idle').style.display = 'flex';
@@ -1444,10 +1438,10 @@ function scanFromFile(event) {
 
 let lastScannedId = null, lastScannedTime = 0;
 function processCheckIn(id) {
-  // Block same ID for 4s to avoid double-scanning same QR
-  if (id === lastScannedId && Date.now() - lastScannedTime < 4000) return;
+  const now = Date.now();
+  if (id === lastScannedId && now - lastScannedTime < 4000) return;
   lastScannedId = id;
-  lastScannedTime = Date.now();
+  lastScannedTime = now;
   checkInById(id);
 }
 
