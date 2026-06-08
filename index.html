@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.json">
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -1428,7 +1428,7 @@ function scanFrame() {
   if (!video.readyState || video.readyState < 2) return;
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(video, 0, 0);
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
