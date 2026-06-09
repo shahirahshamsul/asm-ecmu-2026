@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.json">
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
@@ -1394,105 +1394,45 @@ function openAllQR() {
 }
 
 // ════ SCANNER ════
-async function startScanner() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+let html5QrScanner = null;
 
+async function startScanner() {
   try {
     document.getElementById('scanner-idle').style.display = 'none';
-    document.getElementById('scanner-video').style.display = 'block';
     document.getElementById('scan-overlay').style.display = 'flex';
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    const video = document.getElementById('scanner-video');
+    // html5-qrcode manages the video element itself — point it at our container
+    const container = document.getElementById('scanner-container');
+    // Remove existing video so html5-qrcode can insert its own
+    const oldVideo = document.getElementById('scanner-video');
+    if (oldVideo) oldVideo.style.display = 'none';
 
-    if (isIOS) {
-      // ── iPhone: use ZXing which handles Safari camera better ──
-      zxingReader = new ZXing.BrowserMultiFormatReader();
-      let deviceId = undefined;
-      try {
-        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-        if (devices && devices.length > 0) {
-          const back = devices.find(d => /back|rear|environment/i.test(d.label));
-          deviceId = back ? back.deviceId : devices[devices.length - 1].deviceId;
-        }
-      } catch(e) {}
-      zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-        if (result) {
-          const text = result.getText().trim();
-          console.log('ZXing QR:', text);
-          const id = extractId(text);
-          if (id) processCheckIn(id);
-        }
-      });
-      setTimeout(() => { if (video.srcObject) scannerStream = video.srcObject; }, 1000);
+    html5QrScanner = new Html5Qrcode('scanner-container');
 
-    } else {
-      // ── Android / Desktop: jsQR canvas loop ──
-      const canvas = document.getElementById('scanner-canvas');
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const config = {
+      fps: 15,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+    };
 
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } }
-        });
-      } catch(e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-
-      video.srcObject = stream;
-      scannerStream = stream;
-
-      video.play().catch(() => {});
-
-      // Start loop immediately — check videoWidth inside loop
-      let frameCount = 0;
-      function dbg(msg) {
-        const d = document.getElementById('scan-debug');
-        if (d) { d.innerHTML = msg + '<br>' + d.innerHTML; d.style.display = 'block'; }
-      }
-      dbg('Stream assigned, starting loop');
-
-      function tick() {
-        if (!scannerStream) return;
-        frameCount++;
-        if (frameCount === 1) dbg('Loop started');
-        if (frameCount === 60) dbg('60 frames - video:' + video.videoWidth + 'x' + video.videoHeight + ' readyState:' + video.readyState);
-        try {
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            if (frameCount === 61) dbg('jsQR running on ' + imageData.width + 'x' + imageData.height);
-            let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
-            if (!code) {
-              const cx = Math.floor(canvas.width * 0.15);
-              const cy = Math.floor(canvas.height * 0.15);
-              const cw = Math.floor(canvas.width * 0.7);
-              const ch = Math.floor(canvas.height * 0.7);
-              const crop = ctx.getImageData(cx, cy, cw, ch);
-              code = jsQR(crop.data, crop.width, crop.height, { inversionAttempts: 'attemptBoth' });
-            }
-            if (code && code.data) {
-              const text = code.data.trim();
-              dbg('FOUND: ' + text);
-              const id = extractId(text);
-              if (id) processCheckIn(id);
-            }
-          }
-        } catch(e) {}
-        scanInterval = requestAnimationFrame(tick);
-      }
-      scanInterval = requestAnimationFrame(tick);
-    }
+    await html5QrScanner.start(
+      { facingMode: 'environment' },
+      config,
+      (text) => {
+        console.log('html5-qrcode:', text);
+        const id = extractId(text.trim());
+        if (id) processCheckIn(id);
+      },
+      (err) => { /* ignore per-frame errors */ }
+    );
 
   } catch(e) {
     console.error('Scanner error:', e);
     toast('Camera error: ' + e.message, 'err');
     document.getElementById('scanner-idle').style.display = 'flex';
-    document.getElementById('scanner-video').style.display = 'none';
     document.getElementById('scan-overlay').style.display = 'none';
     document.getElementById('start-scan-btn').style.display = 'inline-block';
     document.getElementById('stop-scan-btn').style.display = 'none';
@@ -1500,10 +1440,10 @@ async function startScanner() {
 }
 
 function stopScanner() {
+  try { if (html5QrScanner) { html5QrScanner.stop().then(() => { html5QrScanner.clear(); html5QrScanner = null; }).catch(() => {}); } } catch(e) {}
   try { if (zxingReader) { zxingReader.reset(); zxingReader = null; } } catch(e) {}
   try { if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; } } catch(e) {}
   if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
-  document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('scanner-idle').style.display = 'flex';
   document.getElementById('scan-overlay').style.display = 'none';
   document.getElementById('start-scan-btn').style.display = 'inline-block';
