@@ -1435,10 +1435,13 @@ async function startScanner() {
     }
     dbg('Camera started: ' + video.videoWidth + 'x' + video.videoHeight);
 
+    let frameCount = 0;
     function tick() {
       if (!scannerStream) return;
       try {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
+          frameCount++;
+          if (frameCount % 30 === 0) dbg('Frame ' + frameCount + ' size:' + video.videoWidth + 'x' + video.videoHeight);
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -1451,8 +1454,10 @@ async function startScanner() {
             if (id) processCheckIn(id);
             else dbg('No match: ' + text);
           }
+        } else {
+          dbg('Video not ready: ' + video.videoWidth + 'x' + video.videoHeight + ' readyState:' + video.readyState);
         }
-      } catch(e) { /* ignore frame errors */ }
+      } catch(e) { dbg('Frame error: ' + e.message); }
       scanInterval = requestAnimationFrame(tick);
     }
     scanInterval = requestAnimationFrame(tick);
