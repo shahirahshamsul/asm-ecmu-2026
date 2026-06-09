@@ -1444,16 +1444,21 @@ async function startScanner() {
       video.srcObject = stream;
       scannerStream = stream;
 
-      // Wait for playing event — most reliable signal on Android Chrome
-      await new Promise(resolve => {
-        video.addEventListener('playing', resolve, { once: true });
-        video.addEventListener('loadeddata', resolve, { once: true });
-        setTimeout(resolve, 3000);
-        video.play().catch(() => {});
-      });
+      video.play().catch(() => {});
+
+      // Start loop immediately — check videoWidth inside loop
+      let frameCount = 0;
+      function dbg(msg) {
+        const d = document.getElementById('scan-debug');
+        if (d) { d.innerHTML = msg + '<br>' + d.innerHTML; d.style.display = 'block'; }
+      }
+      dbg('Stream assigned, starting loop');
 
       function tick() {
         if (!scannerStream) return;
+        frameCount++;
+        if (frameCount === 1) dbg('Loop started');
+        if (frameCount === 60) dbg('60 frames - video:' + video.videoWidth + 'x' + video.videoHeight + ' readyState:' + video.readyState);
         try {
           if (video.videoWidth > 0 && video.videoHeight > 0) {
             canvas.width = video.videoWidth;
