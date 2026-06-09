@@ -1404,30 +1404,46 @@ async function startScanner() {
     const canvas = document.getElementById('scanner-canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    // Request back camera
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
+    // Request back camera with simple constraints — complex ones fail on some Android
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }
+      });
+    } catch(e) {
+      // fallback: just any camera
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    }
+
     video.srcObject = stream;
     scannerStream = stream;
-    await video.play();
+
+    // Wait for video to actually be ready before starting loop
+    await new Promise(resolve => {
+      video.onloadedmetadata = () => resolve();
+      video.onloadeddata = () => resolve();
+      setTimeout(resolve, 2000); // fallback timeout
+    });
+    video.play();
 
     function tick() {
       if (!scannerStream) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-        if (code && code.data) {
-          const text = code.data.trim();
-          console.log('QR scanned raw:', text);
-          const id = extractId(text);
-          if (id) processCheckIn(id);
-          else console.warn('QR scanned but no match:', text);
+      try {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+          if (code && code.data) {
+            const text = code.data.trim();
+            console.log('QR scanned raw:', text);
+            const id = extractId(text);
+            if (id) processCheckIn(id);
+            else console.warn('QR scanned but no match:', text);
+          }
         }
-      }
+      } catch(e) { /* ignore frame errors */ }
       scanInterval = requestAnimationFrame(tick);
     }
     scanInterval = requestAnimationFrame(tick);
