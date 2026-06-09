@@ -1411,10 +1411,12 @@ async function startScanner() {
 
     html5QrScanner = new Html5Qrcode('scanner-container');
 
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const config = {
-      fps: 15,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
+      fps: 25,
+      qrbox: { width: 200, height: 200 },
+      aspectRatio: isIOS ? 1.333 : 1.0,
+      disableFlip: false,
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
 
