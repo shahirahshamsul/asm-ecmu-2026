@@ -1428,25 +1428,58 @@ async function startScanner() {
       setTimeout(() => { if (video.srcObject) scannerStream = video.srcObject; }, 1000);
 
     } else {
-      // ── Android / Desktop: use ZXing same as iOS ──
-      zxingReader = new ZXing.BrowserMultiFormatReader();
-      let deviceId = undefined;
+      // ── Android / Desktop: jsQR canvas loop ──
+      const canvas = document.getElementById('scanner-canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+      let stream;
       try {
-        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-        if (devices && devices.length > 0) {
-          const back = devices.find(d => /back|rear|environment/i.test(d.label));
-          deviceId = back ? back.deviceId : devices[devices.length - 1].deviceId;
-        }
-      } catch(e) {}
-      zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-        if (result) {
-          const text = result.getText().trim();
-          console.log('ZXing QR:', text);
-          const id = extractId(text);
-          if (id) processCheckIn(id);
-        }
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } }
+        });
+      } catch(e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
+      video.srcObject = stream;
+      scannerStream = stream;
+
+      // Wait for playing event — most reliable signal on Android Chrome
+      await new Promise(resolve => {
+        video.addEventListener('playing', resolve, { once: true });
+        video.addEventListener('loadeddata', resolve, { once: true });
+        setTimeout(resolve, 3000);
+        video.play().catch(() => {});
       });
-      setTimeout(() => { if (video.srcObject) scannerStream = video.srcObject; }, 1000);
+
+      function tick() {
+        if (!scannerStream) return;
+        try {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+            if (!code) {
+              const cx = Math.floor(canvas.width * 0.15);
+              const cy = Math.floor(canvas.height * 0.15);
+              const cw = Math.floor(canvas.width * 0.7);
+              const ch = Math.floor(canvas.height * 0.7);
+              const crop = ctx.getImageData(cx, cy, cw, ch);
+              code = jsQR(crop.data, crop.width, crop.height, { inversionAttempts: 'dontInvert' });
+            }
+            if (code && code.data) {
+              const text = code.data.trim();
+              console.log('jsQR:', text);
+              const id = extractId(text);
+              if (id) processCheckIn(id);
+            }
+          }
+        } catch(e) {}
+        scanInterval = requestAnimationFrame(tick);
+      }
+      scanInterval = requestAnimationFrame(tick);
     }
 
   } catch(e) {
