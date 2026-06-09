@@ -699,6 +699,8 @@ function json(data) {
             <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="scanFromFile(event)">
           </label>
         </div>
+        <div id="scan-debug" style="display:none;margin-top:0.75rem;padding:0.5rem 0.75rem;background:#1a1a1a;color:#0f0;font-family:monospace;font-size:0.65rem;border-radius:4px;word-break:break-all;max-height:80px;overflow-y:auto;"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:0.5rem;font-size:0.62rem;" onclick="const d=document.getElementById('scan-debug');d.style.display=d.style.display==='none'?'block':'none';">🐛 Debug</button>
       </div>
 
       <div class="scan-result-area">
@@ -1426,6 +1428,13 @@ async function startScanner() {
     });
     video.play();
 
+    function dbg(msg) {
+      const d = document.getElementById('scan-debug');
+      if (d) { d.innerHTML = msg + '<br>' + d.innerHTML; d.style.display = 'block'; }
+      console.log(msg);
+    }
+    dbg('Camera started: ' + video.videoWidth + 'x' + video.videoHeight);
+
     function tick() {
       if (!scannerStream) return;
       try {
@@ -1437,10 +1446,10 @@ async function startScanner() {
           const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
           if (code && code.data) {
             const text = code.data.trim();
-            console.log('QR scanned raw:', text);
+            dbg('QR: ' + text);
             const id = extractId(text);
             if (id) processCheckIn(id);
-            else console.warn('QR scanned but no match:', text);
+            else dbg('No match: ' + text);
           }
         }
       } catch(e) { /* ignore frame errors */ }
@@ -1450,7 +1459,9 @@ async function startScanner() {
 
   } catch(e) {
     console.error('Scanner error:', e);
-    toast('Camera access denied. Use iPhone Scan or Manual Check-in below.', 'err');
+    const d = document.getElementById('scan-debug');
+    if (d) { d.innerHTML = 'ERROR: ' + e.message; d.style.display = 'block'; }
+    toast('Camera error: ' + e.message, 'err');
     document.getElementById('scanner-idle').style.display = 'flex';
     document.getElementById('scanner-video').style.display = 'none';
     document.getElementById('scan-overlay').style.display = 'none';
