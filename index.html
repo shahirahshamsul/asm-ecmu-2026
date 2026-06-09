@@ -1441,7 +1441,7 @@ async function startScanner() {
       try {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
           frameCount++;
-          if (frameCount % 30 === 0) dbg('Frame ' + frameCount + ' size:' + video.videoWidth + 'x' + video.videoHeight);
+          if (frameCount === 30) dbg('Running OK ' + video.videoWidth + 'x' + video.videoHeight + ' - point camera at QR code');
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
