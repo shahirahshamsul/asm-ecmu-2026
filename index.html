@@ -708,6 +708,12 @@ function json(data) {
         </div>
         <div class="manual-lookup card">
           <h3>Manual Check-in</h3>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.65rem;">
+            <button class="day-btn active" id="manual-day-pre" onclick="setManualDay('pre')" style="font-size:0.62rem;padding:0.35rem 0.6rem;">Pre Congress</button>
+            <button class="day-btn" id="manual-day-main1" onclick="setManualDay('main1')" style="font-size:0.62rem;padding:0.35rem 0.6rem;">Main D1</button>
+            <button class="day-btn" id="manual-day-main2" onclick="setManualDay('main2')" style="font-size:0.62rem;padding:0.35rem 0.6rem;">Main D2</button>
+            <button class="day-btn" id="manual-day-speaker" onclick="setManualDay('speaker')" style="font-size:0.62rem;padding:0.35rem 0.6rem;">Speaker</button>
+          </div>
           <div class="search-row">
             <input type="text" id="manual-search" placeholder="Search by name or email…">
             <button class="btn btn-secondary btn-sm" onclick="manualCheckIn()">Check-in</button>
@@ -1394,32 +1400,37 @@ async function startScanner() {
     document.getElementById('start-scan-btn').style.display = 'none';
     document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    zxingReader = new ZXing.BrowserMultiFormatReader();
-
     const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    // Get back camera if available
-    let deviceId = undefined;
-    try {
-      const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-      if (devices && devices.length > 0) {
-        const back = devices.find(d => /back|rear|environment/i.test(d.label));
-        deviceId = back ? back.deviceId : devices[devices.length - 1].deviceId;
-      }
-    } catch(e) { /* no device list, use default */ }
-
-    zxingReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-      if (result) {
-        let text = result.getText().trim();
-        console.log('QR scanned raw:', text);
-        const id = extractId(text);
-        if (id) processCheckIn(id);
-        else console.warn('QR scanned but no matching attendee ID found:', text);
-      }
+    // Request back camera
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
     });
+    video.srcObject = stream;
+    scannerStream = stream;
+    await video.play();
 
-    // Store stream reference
-    setTimeout(() => { if (video.srcObject) scannerStream = video.srcObject; }, 1000);
+    function tick() {
+      if (!scannerStream) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        if (code && code.data) {
+          const text = code.data.trim();
+          console.log('QR scanned raw:', text);
+          const id = extractId(text);
+          if (id) processCheckIn(id);
+          else console.warn('QR scanned but no match:', text);
+        }
+      }
+      scanInterval = requestAnimationFrame(tick);
+    }
+    scanInterval = requestAnimationFrame(tick);
 
   } catch(e) {
     console.error('Scanner error:', e);
@@ -1542,8 +1553,19 @@ function processCheckIn(id) {
 
 let currentDay = 'pre';
 
+let manualDay = 'pre';
+
+function setManualDay(day) {
+  manualDay = day;
+  document.querySelectorAll('[id^="manual-day-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('manual-day-' + day);
+  if (btn) btn.classList.add('active');
+}
+
 function setDay(day) {
   currentDay = day;
+  // sync manual day buttons too
+  setManualDay(day);
   const titles = { pre: 'Pre Congress', main1: 'Main Congress — Day 1', main2: 'Main Congress — Day 2', speaker: 'Speaker / VIP' };
   const descriptions = {
     pre: 'Pre Congress & Both Congress attendees can check in.',
@@ -1648,19 +1670,38 @@ document.getElementById('manual-search').addEventListener('input', function() {
   const q = this.value.toLowerCase();
   if (q.length < 2) { document.getElementById('manual-results').innerHTML = ''; return; }
   const results = attendees.filter(a => a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)).slice(0,5);
-  document.getElementById('manual-results').innerHTML = results.map(a => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.75rem;background:var(--cream);border-radius:3px;margin-bottom:0.35rem;">
-      <div><div style="font-size:0.8rem;font-weight:500;">${a.name}</div><div style="font-size:0.65rem;color:var(--muted);">${a.email}</div></div>
-      <button class="btn ${a.checkedIn?'btn-ghost':'btn-green'} btn-sm" ${a.checkedIn?'disabled':''} onclick="checkInById('${a.id}');document.getElementById('manual-search').value='';document.getElementById('manual-results').innerHTML='';">
-        ${a.checkedIn?'✓ In':'Check-in'}
+  document.getElementById('manual-results').innerHTML = results.map(a => {
+    const dayKey = 'checkedIn_' + manualDay;
+    const alreadyIn = a[dayKey];
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.75rem;background:var(--cream);border-radius:3px;margin-bottom:0.35rem;">
+      <div><div style="font-size:0.8rem;font-weight:500;">${a.name}</div><div style="font-size:0.65rem;color:var(--muted);">${a.email} · ${a.session}</div></div>
+      <button class="btn ${alreadyIn?'btn-ghost':'btn-green'} btn-sm" ${alreadyIn?'disabled':''} onclick="manualCheckInById('${a.id}');">
+        ${alreadyIn?'✓ Done':'Check-in'}
       </button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 });
+
+async function manualCheckInById(id) {
+  const prevDay = currentDay;
+  currentDay = manualDay;
+  await checkInById(id);
+  currentDay = prevDay;
+  document.getElementById('manual-search').value='';
+  document.getElementById('manual-results').innerHTML='';
+}
 
 async function manualCheckIn() {
   const q = document.getElementById('manual-search').value.trim().toLowerCase();
   const a = attendees.find(x => x.name.toLowerCase() === q || x.email.toLowerCase() === q);
-  if (a) { await checkInById(a.id); document.getElementById('manual-search').value=''; document.getElementById('manual-results').innerHTML=''; }
+  if (a) {
+    const prevDay = currentDay;
+    currentDay = manualDay;
+    await checkInById(a.id);
+    currentDay = prevDay;
+    document.getElementById('manual-search').value='';
+    document.getElementById('manual-results').innerHTML='';
+  }
   else toast('Attendee not found.', 'err');
 }
 
