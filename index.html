@@ -1236,6 +1236,7 @@ function renderAttendeeChips() {
       <div style="flex:1;min-width:0;">
         <div class="chip-name">${a.name}</div>
         <div class="chip-meta">${a.session}${a.org?' · '+a.org:''}</div>
+        ${a.sponsored === 'Yes' ? '<div style="margin-top:3px;"><span style="font-size:0.6rem;background:#f5d6f5;color:#6b1f7a;padding:2px 6px;border-radius:10px;font-weight:600;">💊 ' + (a.sponsoredBy||'Sponsored') + '</span></div>' : ''}
         ${a.notes ? '<div style="margin-top:3px;"><span style="font-size:0.6rem;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-weight:600;">' + a.notes + '</span></div>' : ''}
       </div>
       <div class="chip-status ${(a.checkedIn_pre||a.checkedIn_main1||a.checkedIn_main2)?'present':'absent'}">${buildCheckinBadge(a)}</div>
