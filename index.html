@@ -1416,15 +1416,24 @@ async function startScanner() {
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const config = {
-      fps: 25,
-      qrbox: { width: 200, height: 200 },
+      fps: 30,
+      qrbox: { width: 250, height: 250 },
       aspectRatio: isIOS ? 1.333 : 1.0,
       disableFlip: false,
+      rememberLastUsedCamera: true,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
 
+    // Higher resolution helps read QR from small screens on all devices
+    const cameraConfig = {
+      facingMode: 'environment',
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    };
+
     await html5QrScanner.start(
-      { facingMode: 'environment' },
+      cameraConfig,
       config,
       (text) => {
         console.log('html5-qrcode:', text);
