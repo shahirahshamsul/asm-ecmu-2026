@@ -1426,58 +1426,59 @@ async function startScanner() {
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  // Callback — plugs straight into existing check-in pipeline
   const onScanSuccess = (text) => {
     const id = extractId(text.trim());
     if (id) processCheckIn(id);
   };
 
-  // Dynamic qrbox: 75% of the smaller viewport dimension, always square
   const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
     const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
     return { width: size, height: size };
   };
 
-  // ── Upgrade 3: experimentalFeatures activates native BarcodeDetector API
-  // which handles inverted (white-on-black) QR codes natively on supported devices
   const config = {
-    fps: 20,                        // Upgrade 2: higher fps = more sensitive, less motion blur
+    fps: 20,
     qrbox: qrboxFn,
     aspectRatio: isIOS ? 1.333 : 1.0,
     disableFlip: false,
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true },  // Upgrade 3
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
   };
 
-  // ── Upgrade 4: playsInline for iOS is set on the video element directly,
-  // not via constraints (mandatory constraints break modern browsers)
-  const scannerVideo = document.querySelector('#scanner-container video');
-  if (scannerVideo) {
-    scannerVideo.setAttribute('playsinline', '');
-    scannerVideo.setAttribute('muted', '');
+  try {
+    html5QrScanner = new Html5Qrcode('scanner-container');
+    // Start with no constraints — let the browser pick the camera
+    // This guarantees the permission prompt appears
+    await html5QrScanner.start(
+      { facingMode: 'environment' },
+      config,
+      onScanSuccess,
+      () => {}
+    );
+    return;
+  } catch(e) {
+    console.warn('Back camera failed:', e.message);
+    try { html5QrScanner.clear(); } catch(e2) {}
+    html5QrScanner = null;
   }
 
-  // Camera attempt order: back camera → front camera → any camera
-  const cameraAttempts = [
-    { facingMode: { ideal: 'environment' } },
-    { facingMode: { ideal: 'user' } },
-    {}
-  ];
-
-  for (const cameraConfig of cameraAttempts) {
-    try {
-      html5QrScanner = new Html5Qrcode('scanner-container');
-      await html5QrScanner.start(cameraConfig, config, onScanSuccess, () => {});
-      return; // success — stop trying
-    } catch(e) {
-      console.warn('Scanner attempt failed:', JSON.stringify(cameraConfig), e.message);
-      try { html5QrScanner.clear(); } catch(e2) {}
-      html5QrScanner = null;
-    }
+  // Fallback: try any camera
+  try {
+    html5QrScanner = new Html5Qrcode('scanner-container');
+    await html5QrScanner.start(
+      {},
+      config,
+      onScanSuccess,
+      () => {}
+    );
+    return;
+  } catch(e) {
+    console.warn('Any camera failed:', e.message);
+    try { html5QrScanner.clear(); } catch(e2) {}
+    html5QrScanner = null;
   }
 
-  // All attempts failed
-  toast('Could not access camera. Please allow camera permission and try again.', 'err');
+  toast('Could not access camera. Please check camera permissions in your browser settings.', 'err');
   document.getElementById('scanner-idle').style.display = 'flex';
   document.getElementById('start-scan-btn').style.display = 'inline-block';
   document.getElementById('stop-scan-btn').style.display = 'none';
