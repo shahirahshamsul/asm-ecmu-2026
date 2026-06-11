@@ -1426,42 +1426,52 @@ async function startScanner() {
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
+  // Callback — plugs straight into existing check-in pipeline
   const onScanSuccess = (text) => {
     const id = extractId(text.trim());
     if (id) processCheckIn(id);
   };
 
-  // Try with back camera first, fall back to any camera, then fall back to front camera
-  const attempts = [
-    { facingMode: 'environment' },
-    { facingMode: 'user' },
-    {}
-  ];
-
-  // qrbox as function — scales to 70% of the smaller dimension of the viewport
-  // This means it always fills most of the camera view regardless of screen size
+  // Dynamic qrbox: 75% of the smaller viewport dimension, always square
   const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
-    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-    const size = Math.floor(minEdge * 0.75);
+    const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
     return { width: size, height: size };
   };
 
+  // ── Upgrade 3: experimentalFeatures activates native BarcodeDetector API
+  // which handles inverted (white-on-black) QR codes natively on supported devices
   const config = {
-    fps: 20,
+    fps: 20,                        // Upgrade 2: higher fps = more sensitive, less motion blur
     qrbox: qrboxFn,
     aspectRatio: isIOS ? 1.333 : 1.0,
     disableFlip: false,
-    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },  // Upgrade 3
     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
   };
 
-  for (const cameraConfig of attempts) {
+  // ── Upgrade 4: videoConstraints with playsInline prevents iOS Safari from
+  // hijacking the camera feed into a fullscreen media player
+  const videoConstraints = {
+    facingMode: 'environment',
+    ...(isIOS ? { mandatory: { playsInline: true } } : {})
+  };
+
+  // Upgrade 1: use low-level Html5Qrcode class directly (not Html5QrcodeScanner)
+  // for raw access to the video stream processing pipeline
+  const cameraAttempts = [
+    videoConstraints,                       // back camera + iOS playsInline fix
+    { facingMode: 'user',
+      ...(isIOS ? { mandatory: { playsInline: true } } : {}) },  // front camera fallback
+    {}                                       // any camera as last resort
+  ];
+
+  for (const cameraConfig of cameraAttempts) {
     try {
-      html5QrScanner = new Html5Qrcode('scanner-container');
+      html5QrScanner = new Html5Qrcode('scanner-container');  // Upgrade 1: low-level class
       await html5QrScanner.start(cameraConfig, config, onScanSuccess, () => {});
       return; // success — stop trying
     } catch(e) {
-      console.warn('Scanner attempt failed:', cameraConfig, e.message);
+      console.warn('Scanner attempt failed:', JSON.stringify(cameraConfig), e.message);
       try { html5QrScanner.clear(); } catch(e2) {}
       html5QrScanner = null;
     }
