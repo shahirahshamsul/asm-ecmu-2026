@@ -1438,9 +1438,17 @@ async function startScanner() {
     {}
   ];
 
+  // qrbox as function — scales to 70% of the smaller dimension of the viewport
+  // This means it always fills most of the camera view regardless of screen size
+  const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
+    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    const size = Math.floor(minEdge * 0.75);
+    return { width: size, height: size };
+  };
+
   const config = {
-    fps: 25,
-    qrbox: { width: 250, height: 250 },
+    fps: 20,
+    qrbox: qrboxFn,
     aspectRatio: isIOS ? 1.333 : 1.0,
     disableFlip: false,
     experimentalFeatures: { useBarCodeDetectorIfSupported: true },
