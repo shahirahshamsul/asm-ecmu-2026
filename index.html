@@ -1449,25 +1449,24 @@ async function startScanner() {
     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
   };
 
-  // ── Upgrade 4: videoConstraints with playsInline prevents iOS Safari from
-  // hijacking the camera feed into a fullscreen media player
-  const videoConstraints = {
-    facingMode: 'environment',
-    ...(isIOS ? { mandatory: { playsInline: true } } : {})
-  };
+  // ── Upgrade 4: playsInline for iOS is set on the video element directly,
+  // not via constraints (mandatory constraints break modern browsers)
+  const scannerVideo = document.querySelector('#scanner-container video');
+  if (scannerVideo) {
+    scannerVideo.setAttribute('playsinline', '');
+    scannerVideo.setAttribute('muted', '');
+  }
 
-  // Upgrade 1: use low-level Html5Qrcode class directly (not Html5QrcodeScanner)
-  // for raw access to the video stream processing pipeline
+  // Camera attempt order: back camera → front camera → any camera
   const cameraAttempts = [
-    videoConstraints,                       // back camera + iOS playsInline fix
-    { facingMode: 'user',
-      ...(isIOS ? { mandatory: { playsInline: true } } : {}) },  // front camera fallback
-    {}                                       // any camera as last resort
+    { facingMode: { ideal: 'environment' } },
+    { facingMode: { ideal: 'user' } },
+    {}
   ];
 
   for (const cameraConfig of cameraAttempts) {
     try {
-      html5QrScanner = new Html5Qrcode('scanner-container');  // Upgrade 1: low-level class
+      html5QrScanner = new Html5Qrcode('scanner-container');
       await html5QrScanner.start(cameraConfig, config, onScanSuccess, () => {});
       return; // success — stop trying
     } catch(e) {
