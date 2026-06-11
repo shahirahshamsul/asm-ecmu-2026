@@ -1420,44 +1420,50 @@ function openAllQR() {
 let html5QrScanner = null;
 
 async function startScanner() {
-  try {
-    document.getElementById('scanner-idle').style.display = 'none';
-    document.getElementById('start-scan-btn').style.display = 'none';
-    document.getElementById('stop-scan-btn').style.display = 'inline-block';
+  document.getElementById('scanner-idle').style.display = 'none';
+  document.getElementById('start-scan-btn').style.display = 'none';
+  document.getElementById('stop-scan-btn').style.display = 'inline-block';
 
-    html5QrScanner = new Html5Qrcode('scanner-container');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const config = {
-      fps: 30,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: isIOS ? 1.333 : 1.0,
-      disableFlip: false,
-      rememberLastUsedCamera: true,
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-    };
+  const onScanSuccess = (text) => {
+    const id = extractId(text.trim());
+    if (id) processCheckIn(id);
+  };
 
-    const cameraConfig = { facingMode: 'environment' };
+  // Try with back camera first, fall back to any camera, then fall back to front camera
+  const attempts = [
+    { facingMode: 'environment' },
+    { facingMode: 'user' },
+    {}
+  ];
 
-    await html5QrScanner.start(
-      cameraConfig,
-      config,
-      (text) => {
-        console.log('html5-qrcode:', text);
-        const id = extractId(text.trim());
-        if (id) processCheckIn(id);
-      },
-      (err) => { /* ignore per-frame errors */ }
-    );
+  const config = {
+    fps: 25,
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: isIOS ? 1.333 : 1.0,
+    disableFlip: false,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+  };
 
-  } catch(e) {
-    console.error('Scanner error:', e);
-    toast('Camera error: ' + e.message, 'err');
-    document.getElementById('scanner-idle').style.display = 'flex';
-    document.getElementById('start-scan-btn').style.display = 'inline-block';
-    document.getElementById('stop-scan-btn').style.display = 'none';
+  for (const cameraConfig of attempts) {
+    try {
+      html5QrScanner = new Html5Qrcode('scanner-container');
+      await html5QrScanner.start(cameraConfig, config, onScanSuccess, () => {});
+      return; // success — stop trying
+    } catch(e) {
+      console.warn('Scanner attempt failed:', cameraConfig, e.message);
+      try { html5QrScanner.clear(); } catch(e2) {}
+      html5QrScanner = null;
+    }
   }
+
+  // All attempts failed
+  toast('Could not access camera. Please allow camera permission and try again.', 'err');
+  document.getElementById('scanner-idle').style.display = 'flex';
+  document.getElementById('start-scan-btn').style.display = 'inline-block';
+  document.getElementById('stop-scan-btn').style.display = 'none';
 }
 
 function stopScanner() {
