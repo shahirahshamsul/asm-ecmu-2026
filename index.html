@@ -11,8 +11,7 @@
 <link rel="manifest" href="/manifest.json">
 <title>ASM & ECMU 2026 — Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@400;500;700;900&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -1439,12 +1438,7 @@ async function startScanner() {
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
     };
 
-    // Higher resolution helps read QR from small screens on all devices
-    const cameraConfig = {
-      facingMode: 'environment',
-      width: { ideal: 1920 },
-      height: { ideal: 1080 }
-    };
+    const cameraConfig = { facingMode: 'environment' };
 
     await html5QrScanner.start(
       cameraConfig,
